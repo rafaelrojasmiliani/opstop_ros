@@ -17,6 +17,8 @@ private:
   double optimization_window_milisec_;
   double network_window_milisec_;
 
+  ros::Time prehemption_time_;
+
 public:
   FollowJointTrajectoryActionWrapper(
       const FollowJointTrajectoryActionWrapper &) = delete;

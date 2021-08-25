@@ -21,8 +21,8 @@ int main(int argc, char **argv) {
   ros::NodeHandle node("~");
   XmlRpc::XmlRpcValue xmlval;
   double control_step = 0.01;
-  double optimization_window_milisec = 100.0;
-  double network_window_milisec = 50.0;
+  int optimization_window_milisec = 100.0;
+  int network_window_milisec = 50.0;
 
   std::string action_name = "follow_joint_gspline";
   std::string target_action_ns = "pos_joint_traj_controller";
@@ -38,10 +38,10 @@ int main(int argc, char **argv) {
 
   my_get_param(optimization_window_milisec, node,
                "optimization_window_milliseconds",
-               XmlRpc::XmlRpcValue::TypeDouble);
+               XmlRpc::XmlRpcValue::TypeInt);
 
   my_get_param(network_window_milisec, node, "network_window_milliseconds",
-               XmlRpc::XmlRpcValue::TypeDouble);
+               XmlRpc::XmlRpcValue::TypeInt);
 
   opstop_ros::FollowJointTrajectoryActionWrapper wrapper(
       action_name, target_action_ns, control_step, optimization_window_milisec,
