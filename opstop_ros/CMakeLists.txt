@@ -38,16 +38,28 @@ catkin_package(
   std_msgs
   trajectory_msgs)
 
-include_directories(${catkin_INCLUDE_DIRS} ${Eigen3_INCLUDE_DIRS})
+include_directories(${catkin_INCLUDE_DIRS} ${Eigen3_INCLUDE_DIRS} include)
 add_subdirectory(${PROJECT_SOURCE_DIR}/submodules/pybind11)
 add_subdirectory(${PROJECT_SOURCE_DIR}/submodules/optstop_cpp)
 
+add_library(opstop_ros src/follow_joint_trajectory_action_wrapper.cpp)
+target_link_libraries(opstop_ros ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} opstop)
+
+add_executable(follow_joint_trajectory_wrapper
+               src/follow_joint_trajectory_action_wrapper_node.cpp)
+
+target_link_libraries(follow_joint_trajectory_wrapper ${catkin_LIBRARIES}
+                      ${Eigen3_LIBRARIES} opstop opstop_ros)
+
 install(
-  TARGETS opstop
+  TARGETS opstop opstop_ros
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
+
 install(TARGETS pyopstop
         LIBRARY DESTINATION ${CATKIN_GLOBAL_PYTHON_DESTINATION})
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/submodules/optstop_cpp/include/
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}/..)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/opstop_ros/
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
