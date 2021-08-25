@@ -32,7 +32,7 @@ RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main"
 RUN apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
 RUN apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confnew" \
-                    ros-noetic-ifopt exuberant-ctags ros-noetic-pinocchio ros-noetic-ros-base python3-catkin-tools \
+                    ros-noetic-ifopt exuberant-ctags ros-noetic-ros-base python3-catkin-tools \
                     ros-noetic-plotjuggler \
                     ros-noetic-joint-trajectory-controller \
                     ros-noetic-joint-trajectory-action \
@@ -52,6 +52,19 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends -o
                     ros-noetic-moveit-msgs \
                     ros-noetic-rqt-joint-trajectory-controller
 
+RUN echo "deb [arch=amd64] http://robotpkg.openrobots.org/packages/debian/pub $(lsb_release -cs) robotpkg" | tee /etc/apt/sources.list.d/robotpkg.list
+RUN curl http://robotpkg.openrobots.org/packages/debian/robotpkg.key | apt-key add -
+
+
+RUN apt-get update
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confnew" \
+                    robotpkg-py38-pinocchio
+
+RUN echo "export PATH=/opt/openrobots/bin:$PATH" >> /etc/bash.bashrc
+RUN echo "export PKG_CONFIG_PATH=/opt/openrobots/lib/pkgconfig:$PKG_CONFIG_PATH" >> /etc/bash.bashrc
+RUN echo "export LD_LIBRARY_PATH=/opt/openrobots/lib:$LD_LIBRARY_PATH" >> /etc/bash.bashrc
+RUN echo "export PYTHONPATH=/opt/openrobots/lib/python3.8/site-packages:$PYTHONPATH" >> /etc/bash.bashrc
+RUN echo "export CMAKE_PREFIX_PATH=/opt/openrobots:$CMAKE_PREFIX_PATH" >> /etc/bash.bashrc
 
 RUN mkdir -p /aux_ws/src
 RUN git clone https://github.com/rafaelrojasmiliani/ur_description_minimal.git /aux_ws/src/ur_description_minimal
