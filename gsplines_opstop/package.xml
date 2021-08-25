@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>gsplines_opstop</name>
+  <name>opstop_ros</name>
   <version>0.0.0</version>
   <description>The gsplines_optop package</description>
   <maintainer email="rafaelrojasmiliani@gmail.com">rafaelrojas</maintainer>

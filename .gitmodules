@@ -1,3 +1,9 @@
 [submodule "gsplines_cpp_ros"]
 	path = gsplines_cpp_ros
 	url = https://github.com/rafaelrojasmiliani/gsplines_cpp_ros.git
+[submodule "gsplines_opstop/submodules/optstop_cpp"]
+	path = gsplines_opstop/submodules/optstop_cpp
+	url = https://github.com/rafaelrojasmiliani/optstop_cpp.git
+[submodule "gsplines_opstop/submodules/pybind11"]
+	path = gsplines_opstop/submodules/pybind11
+	url = https://github.com/pybind/pybind11.git
