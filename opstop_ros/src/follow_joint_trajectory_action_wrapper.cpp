@@ -38,7 +38,7 @@ void FollowJointTrajectoryActionWrapper::prehemption_action() {
   ROS_INFO("ti = %+14.7e  ti+Ts = %+14.7e", ti, end_time);
   gsplines::functions::FunctionExpression stop_trj =
       trajectory_->compose(diffeo).compose(
-          gsplines::functions::Identity({time_from_start_to_stop_, end_time}));
+          gsplines::functions::Identity({ti, end_time}));
 
   control_msgs::FollowJointTrajectoryGoal goal_to_forward =
       gsplines_ros::function_expression_to_follow_joint_trajectory_goal(
@@ -56,7 +56,7 @@ void FollowJointTrajectoryActionWrapper::prehemption_action() {
     action_client_->cancelGoal();
   } else {
     goal_to_forward.trajectory.header.stamp =
-        prehemption_time_ + ros::Duration(1.0e-3 * total_window_milliseconds);
+        prehemption_time_ + ros::Duration(ti);
     action_client_->sendGoal(
         goal_to_forward,
         boost::bind(&FollowJointTrajectoryActionWrapper::done_action, this, _1,

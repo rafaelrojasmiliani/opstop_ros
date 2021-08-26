@@ -46,6 +46,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends -o
                     ros-noetic-rqt \
                     ros-noetic-rqt-graph \
                     ros-noetic-roslint \
+                    ros-noetic-plotjuggler-ros \
                     ros-noetic-rqt-gui \
                     ros-noetic-rqt-gui-py \
                     ros-noetic-rqt-py-common \

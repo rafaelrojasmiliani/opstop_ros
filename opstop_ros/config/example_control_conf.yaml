@@ -25,14 +25,14 @@ pos_joint_traj_controller:
   constraints:
     goal_time: 1
     stopped_velocity_tolerance: 1
-    shoulder_pan_joint: { trajectory: 1, goal: 1 }
-    shoulder_lift_joint: { trajectory: 1, goal: 1 }
-    elbow_joint: { trajectory: 1, goal: 1 }
-    wrist_1_joint: { trajectory: 1, goal: 1 }
-    wrist_2_joint: { trajectory: 1, goal: 1 }
-    wrist_3_joint: { trajectory: 1000, goal: 1000 }
+    shoulder_pan_joint: { trajectory: 0.05, goal: 1 }
+    shoulder_lift_joint: { trajectory: 0.05, goal: 1 }
+    elbow_joint: { trajectory: 0.05, goal: 1 }
+    wrist_1_joint: { trajectory: 0.05, goal: 1 }
+    wrist_2_joint: { trajectory: 0.05, goal: 1 }
+    wrist_3_joint: { trajectory: 0.05, goal: 1000 }
   stop_trajectory_duration: 0.5
-  state_publish_rate: 25
+  state_publish_rate: 50
   action_monitor_rate: 10
 # Publish all joint states -----------------------------------
 joint_state_controller:

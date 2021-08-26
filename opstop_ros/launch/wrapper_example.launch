@@ -4,14 +4,14 @@
   <node name="wrapper" pkg="opstop_ros" type="follow_joint_trajectory_wrapper" respawn="false" output="screen">
     <param name="action_name" value="follow_joint_gspline"/>
     <param name="target_action_ns" value="pos_joint_traj_controller"/>
-    <param name="control_step" value="0.01"/>
+    <param name="control_step" value="0.005"/>
     <param name="optimization_window_milliseconds" value="200"/>
     <param name="network_window_milliseconds" value="50"/>
   </node>
   <node name="motion_generator" pkg="gsplines_follow_trajectory" type="random_minimum_jerk_gsplines" respawn="false" output="screen">
     <param name="rate" value="0.1"/>
-    <param name="number_of_waypoints" value="3"/>
-    <param name="waypoint_radius" value="0.15"/>
-    <param name="execution_time" value="4.0"/>
+    <param name="number_of_waypoints" value="4"/>
+    <param name="waypoint_radius" value="0.25"/>
+    <param name="execution_time" value="3.0"/>
   </node>
 </launch>
