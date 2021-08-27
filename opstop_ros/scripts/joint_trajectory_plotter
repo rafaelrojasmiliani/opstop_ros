@@ -1,0 +1,113 @@
+#! /usr/bin/env python
+"""
+    Listest to gsplines and plot them
+"""
+from control_msgs.msg import FollowJointTrajectoryActionGoal
+
+import rospy
+from trajectory_msgs.msg import JointTrajectory
+from matplotlib import pyplot as plt
+import numpy as np
+import matplotlib
+
+
+def mypause(interval):
+    """ Workarround to prevent the plot window to steal the desktop focus
+    https://stackoverflow.com/questions/45729092/make-interactive-matplotlib-window-not-pop-to-front-on-each-update-windows-7/45734500#45734500
+    """
+    backend = plt.rcParams['backend']
+    if backend in matplotlib.rcsetup.interactive_bk:
+        figure_manager = matplotlib._pylab_helpers.Gcf.get_active()
+        if figure_manager is not None:
+            canvas = figure_manager.canvas
+            if canvas.figure.stale:
+                canvas.draw()
+            canvas.start_event_loop(interval)
+            return
+
+
+class Node:
+    """ Generic node class"""
+
+    def __init__(self):
+        rospy.init_node('gsplines_plotter')
+        self.params = {}
+        self.params['action_ns'] = "pos_joint_traj_controller"
+        self.params['title'] = "plot"
+        matplotlib.use("Qt5agg")
+
+        for key, value in self.params.items():
+            self.params[key] = rospy.get_param('~'+key, value)
+
+        self.subs_ = rospy.Subscriber(
+            self.params['action_ns'] +
+            "/follow_joint_trajectory/goal", FollowJointTrajectoryActionGoal,
+            self.callback_goal)
+
+        self.figure_ = plt.figure()
+        self.plot_axes_ = None
+        plt.show()
+
+    def plot(self, _trj_msg: JointTrajectory, _initial_time):
+        """ plot the gspline"""
+
+        self.show_piecewisefunction(self.figure_, _trj_msg,
+                                    self.params['title'],
+                                    _initial_time=_initial_time)
+        mypause(0.001)
+
+    def callback_goal(self, _msg: FollowJointTrajectoryActionGoal):
+        self.plot(_msg.goal.trajectory,
+                  _msg.goal.trajectory.header.stamp.to_sec())
+
+    def show_piecewisefunction(self, _figure, _trj_msg: JointTrajectory,
+                               _title='',
+                               _initial_time=0.0):
+        """
+            plot piecewise function
+        """
+        if _initial_time < 1.0e-7:
+            _initial_time = rospy.Time.now().to_sec()
+        dim = len(_trj_msg.joint_names)
+        gridspec = _figure.add_gridspec(4, dim)
+        if self.plot_axes_ is None or self.plot_axes_.shape != (4, dim):
+            self.plot_axes_ = np.array(
+                [[_figure.add_subplot(gridspec[i, j]) for j in range(dim)]
+                 for i in range(4)])
+
+        if dim == 1:
+            self.plot_axes_ = np.array(
+                [[self.plot_axes_[i]] for i in range(4)])
+
+        _figure.suptitle(_title)
+        time_spam = [_initial_time +
+                     point.time_from_start.to_sec()
+                     for point in _trj_msg.points]
+
+        rows = ["positions",
+                "velocities",
+                "accelerations"]
+
+        cols = _trj_msg.joint_names
+
+        for row_idx, row_attr in enumerate(rows):
+            for col_idx, col_name in enumerate(cols):
+                array_to_plot = [getattr(point, row_attr)[col_idx]
+                                 for point in _trj_msg.points]
+                self.plot_axes_[row_idx, col_idx].plot(
+                    time_spam, array_to_plot)
+                self.plot_axes_[row_idx, col_idx].set_title(
+                    '{:s} derivative {:s}'.format(col_name, row_attr),
+                    fontsize=8)
+
+        plt.subplots_adjust(
+            left=0.025,
+            bottom=0.05,
+            right=0.975,
+            top=0.95,
+            wspace=0.25,
+            hspace=0.15)
+
+
+if __name__ == "__main__":
+    tr = Node()

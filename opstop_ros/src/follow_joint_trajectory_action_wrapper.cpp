@@ -6,20 +6,22 @@
 #include <opstop_ros/follow_joint_trajectory_action_wrapper.hpp>
 namespace opstop_ros {
 
-void FollowJointTrajectoryActionWrapper::action_callback(
-    const gsplines_msgs::FollowJointGSplineGoalConstPtr &_goal) {
+void FollowJointTrajectoryActionWrapper::action_callback() {
+
+  const gsplines_msgs::FollowJointGSplineGoalConstPtr &goal =
+      action_server_->acceptNewGoal();
 
   trajectory_ =
-      gsplines_ros::msg_to_gspline(_goal->gspline.gspline).move_clone();
+      gsplines_ros::msg_to_gspline(goal->gspline.gspline).move_clone();
 
-  current_goal_names_ = _goal->gspline.name;
+  current_goal_names_ = goal->gspline.name;
 
-  gsplines_follow_trajectory::FollowJointTrajectoryActionWrapper::
-      action_callback(_goal);
+  forward_goal(goal);
 }
 
 void FollowJointTrajectoryActionWrapper::prehemption_action() {
 
+  prehemption_time_ = ros::Time::now();
   double ti = time_from_start_to_stop_ +
               (optimization_window_milisec_ + network_window_milisec_) * 1.0e-3;
   ROS_INFO(
@@ -56,7 +58,7 @@ void FollowJointTrajectoryActionWrapper::prehemption_action() {
     action_client_->cancelGoal();
   } else {
     goal_to_forward.trajectory.header.stamp =
-        prehemption_time_ + ros::Duration(ti);
+        prehemption_time_ + ros::Duration(ti - time_from_start_to_stop_);
     action_client_->sendGoal(
         goal_to_forward,
         boost::bind(&FollowJointTrajectoryActionWrapper::done_action, this, _1,
@@ -70,7 +72,6 @@ void FollowJointTrajectoryActionWrapper::prehemption_action() {
 void FollowJointTrajectoryActionWrapper::feedback_action(
     const control_msgs::FollowJointTrajectoryFeedbackConstPtr &_result) {
 
-  prehemption_time_ = ros::Time::now();
   gsplines_follow_trajectory::FollowJointTrajectoryActionWrapper::
       feedback_action(_result);
   time_from_start_to_stop_ = _result->desired.time_from_start.toSec();

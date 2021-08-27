@@ -13,5 +13,6 @@
     <param name="number_of_waypoints" value="4"/>
     <param name="waypoint_radius" value="0.25"/>
     <param name="execution_time" value="3.0"/>
+    <param name="control_name" value="pos_joint_traj_controller"/>
   </node>
 </launch>

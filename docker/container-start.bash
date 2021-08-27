@@ -56,7 +56,7 @@ main(){
         ${DOCKER_NETWORK_OPTIONS} \
         --volume $(pwd)/../:/catkinws/src/ \
         --user $(id -u):$(id -g) \
-        gsplines_cpp_ros bash
+        opstop_ros bash
 }
 
 main $@

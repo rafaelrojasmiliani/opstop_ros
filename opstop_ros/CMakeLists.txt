@@ -70,3 +70,6 @@ install(DIRECTORY config/
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config)
 install(TARGETS follow_joint_trajectory_wrapper
         RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+catkin_install_python(PROGRAMS scripts/joint_trajectory_plotter DESTINATION
+                      ${CATKIN_PACKAGE_BIN_DESTINATION})

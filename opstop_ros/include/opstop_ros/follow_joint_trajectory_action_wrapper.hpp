@@ -40,8 +40,7 @@ public:
 
   void prehemption_action() override;
 
-  void action_callback(
-      const gsplines_msgs::FollowJointGSplineGoalConstPtr &goal) override;
+  void action_callback() override;
 
   void feedback_action(const control_msgs::FollowJointTrajectoryFeedbackConstPtr
                            &_result) override;
