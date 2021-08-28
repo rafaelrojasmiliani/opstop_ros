@@ -1,4 +1,5 @@
 #include <ros/ros.h>
+#include <xmlrpcpp/XmlRpcException.h>
 #include <xmlrpcpp/XmlRpcValue.h>
 
 #include <opstop_ros/follow_joint_trajectory_action_wrapper.hpp>
@@ -9,7 +10,11 @@ void my_get_param(T &_val, ros::NodeHandle &_nh, const std::string &_param_name,
 
   XmlRpc::XmlRpcValue xmlval;
   if (_nh.getParam(_param_name, xmlval) and xmlval.getType() == _xml_type) {
-    _val = static_cast<T>(xmlval);
+    try {
+      _val = static_cast<T>(xmlval);
+    } catch (XmlRpc::XmlRpcException) {
+      ROS_INFO_STREAM(_param_name << " is set to default " << _val);
+    }
   } else {
     ROS_INFO_STREAM(_param_name << " is set to default " << _val);
   }
@@ -23,6 +28,7 @@ int main(int argc, char **argv) {
   double control_step = 0.01;
   int optimization_window_milisec = 100.0;
   int network_window_milisec = 50.0;
+  bool has_time_feedback = true;
 
   std::string action_name = "follow_joint_gspline";
   std::string target_action_ns = "pos_joint_traj_controller";
@@ -43,9 +49,12 @@ int main(int argc, char **argv) {
   my_get_param(network_window_milisec, node, "network_window_milliseconds",
                XmlRpc::XmlRpcValue::TypeInt);
 
+  my_get_param(has_time_feedback, node, "has_time_feedback",
+               XmlRpc::XmlRpcValue::TypeBoolean);
+
   opstop_ros::FollowJointTrajectoryActionWrapper wrapper(
       action_name, target_action_ns, control_step, optimization_window_milisec,
-      network_window_milisec);
+      network_window_milisec, has_time_feedback);
 
   ros::spin();
 

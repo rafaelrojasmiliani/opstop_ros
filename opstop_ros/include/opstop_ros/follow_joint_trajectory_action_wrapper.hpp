@@ -18,6 +18,10 @@ private:
   double network_window_milisec_;
 
   ros::Time prehemption_time_;
+  ros::Time last_update_time_;
+  ros::Time action_accepted_time_;
+
+  bool has_time_feedback_;
 
 public:
   FollowJointTrajectoryActionWrapper(
@@ -29,7 +33,8 @@ public:
                                      const std::string &_fjta_name,
                                      double _control_step,
                                      double _optimization_window,
-                                     double _network_window)
+                                     double _network_window,
+                                     bool _has_time_feedback)
       : gsplines_follow_trajectory::FollowJointTrajectoryActionWrapper(
             _name, _fjta_name, _control_step),
         trajectory_(nullptr), time_from_start_to_stop_(0.0),
@@ -39,6 +44,7 @@ public:
   virtual ~FollowJointTrajectoryActionWrapper() = default;
 
   void prehemption_action() override;
+  void active_action() override;
 
   void action_callback() override;
 

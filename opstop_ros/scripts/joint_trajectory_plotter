@@ -9,6 +9,8 @@ from trajectory_msgs.msg import JointTrajectory
 from matplotlib import pyplot as plt
 import numpy as np
 import matplotlib
+import time
+import datetime
 
 
 def mypause(interval):
@@ -24,6 +26,12 @@ def mypause(interval):
                 canvas.draw()
             canvas.start_event_loop(interval)
             return
+
+
+COLOR_FORMAT = 'r*-'
+
+CURRENT_INITIAL_TIME = 0
+CURRENT_FINAL_TIME = None
 
 
 class Node:
@@ -46,6 +54,8 @@ class Node:
 
         self.figure_ = plt.figure()
         self.plot_axes_ = None
+        self.current_initial_time_ = 0
+        self.previous_final_time_ = None
         plt.show()
 
     def plot(self, _trj_msg: JointTrajectory, _initial_time):
@@ -80,9 +90,18 @@ class Node:
                 [[self.plot_axes_[i]] for i in range(4)])
 
         _figure.suptitle(_title)
-        time_spam = [_initial_time +
-                     point.time_from_start.to_sec()
-                     for point in _trj_msg.points]
+        now = datetime.datetime.now()
+        if rospy.get_param('/use_sim_time', False):
+            time_0 = 0.0
+        else:
+            time_0 = time.mktime(
+                datetime.date.today().timetuple()) + now.hour*3600
+
+        time_spam = np.array([_initial_time +
+                              point.time_from_start.to_sec()
+                              for point in _trj_msg.points]) - time_0
+
+        self.current_initial_time_ = time_spam[0]
 
         rows = ["positions",
                 "velocities",
@@ -90,15 +109,34 @@ class Node:
 
         cols = _trj_msg.joint_names
 
+        if self.previous_final_time_ is not None and \
+                self.current_initial_time_ > self.previous_final_time_:
+            fmt = 'b*-'
+            for row_idx, row_attr in enumerate(rows):
+                for col_idx, col_name in enumerate(cols):
+                    self.plot_axes_[row_idx, col_idx].clear()
+        elif self.previous_final_time_ is not None and \
+                self.current_initial_time_ >= self.previous_final_time_:
+
+            fmt = 'b*-'
+        else:
+            fmt = 'r*-'
+
+        self.previous_final_time_ = time_spam[-1]
+
         for row_idx, row_attr in enumerate(rows):
             for col_idx, col_name in enumerate(cols):
                 array_to_plot = [getattr(point, row_attr)[col_idx]
                                  for point in _trj_msg.points]
                 self.plot_axes_[row_idx, col_idx].plot(
-                    time_spam, array_to_plot)
+                    time_spam, array_to_plot, fmt)
                 self.plot_axes_[row_idx, col_idx].set_title(
                     '{:s} derivative {:s}'.format(col_name, row_attr),
                     fontsize=8)
+                self.plot_axes_[row_idx, col_idx].grid()
+
+                # self.plot_axes_[row_idx, col_idx].set_xticks(
+                #    np.arange(time_spam[0], time_spam[-1], 0.5), minor=True)
 
         plt.subplots_adjust(
             left=0.025,
@@ -106,7 +144,7 @@ class Node:
             right=0.975,
             top=0.95,
             wspace=0.25,
-            hspace=0.15)
+            hspace=0.4)
 
 
 if __name__ == "__main__":

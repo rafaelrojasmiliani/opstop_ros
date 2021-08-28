@@ -87,6 +87,7 @@ RUN echo "${myuser}:docker" | chpasswd
 
 
 RUN echo "source /opt/ros/noetic/setup.bash" >> /etc/bash.bashrc
+RUN echo "export ROSCONSOLE_FORMAT='[${severity}] - ${node}: [${time}] ${message}'" >> /etc/bash.bashrc
 WORKDIR /catkinws
 RUN chmod 777 /catkinws
 

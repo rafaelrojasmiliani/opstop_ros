@@ -22,8 +22,18 @@ void FollowJointTrajectoryActionWrapper::action_callback() {
 void FollowJointTrajectoryActionWrapper::prehemption_action() {
 
   prehemption_time_ = ros::Time::now();
+  if (not has_time_feedback_) {
+    time_from_start_to_stop_ =
+        (prehemption_time_ - action_accepted_time_).toSec();
+  }
+  ROS_INFO("Action accepted time  %+20.13e s", action_accepted_time_.toSec());
+  ROS_INFO("Las update of desired trajectory time %+20.13e s",
+           time_from_start_to_stop_);
+  ROS_INFO("Las update time %+20.13e s", last_update_time_.toSec());
+  ROS_INFO("Current time %+20.13e s", prehemption_time_.toSec());
   double ti = time_from_start_to_stop_ +
               (optimization_window_milisec_ + network_window_milisec_) * 1.0e-3;
+  ROS_INFO("Desired stop time on the trajectroy %+20.13e s", ti);
   ROS_INFO(
       "Prehemtion requested at ti = %+14.7e, i.e %7.3lf%% of the trajectory",
       ti, ti / trajectory_->get_domain().second);
@@ -34,7 +44,7 @@ void FollowJointTrajectoryActionWrapper::prehemption_action() {
 
   ROS_INFO("optimizing");
   gsplines::functions::FunctionExpression diffeo =
-      opstop::minimum_time_bouded_acceleration(*trajectory_, ti, 5);
+      opstop::minimum_time_bouded_acceleration(*trajectory_, ti, 0.9);
 
   double end_time = diffeo.get_domain().second;
   ROS_INFO("ti = %+14.7e  ti+Ts = %+14.7e", ti, end_time);
@@ -57,8 +67,18 @@ void FollowJointTrajectoryActionWrapper::prehemption_action() {
     ROS_ERROR("optimizaion done in to mmuch time, calleling goal");
     action_client_->cancelGoal();
   } else {
-    goal_to_forward.trajectory.header.stamp =
-        prehemption_time_ + ros::Duration(ti - time_from_start_to_stop_);
+    if (not has_time_feedback_) {
+      goal_to_forward.trajectory.header.stamp =
+          action_accepted_time_ + ros::Duration(ti);
+    } else {
+      goal_to_forward.trajectory.header.stamp =
+          last_update_time_ + ros::Duration(ti - time_from_start_to_stop_);
+    }
+    ROS_INFO("Effective time to stop %+20.13e s",
+             goal_to_forward.trajectory.header.stamp.toSec());
+    ROS_INFO("diff between action accepted and action to stop %+20.13e s",
+             goal_to_forward.trajectory.header.stamp.toSec() -
+                 action_accepted_time_.toSec());
     action_client_->sendGoal(
         goal_to_forward,
         boost::bind(&FollowJointTrajectoryActionWrapper::done_action, this, _1,
@@ -75,8 +95,15 @@ void FollowJointTrajectoryActionWrapper::feedback_action(
   gsplines_follow_trajectory::FollowJointTrajectoryActionWrapper::
       feedback_action(_result);
   time_from_start_to_stop_ = _result->desired.time_from_start.toSec();
+  last_update_time_ = ros::Time::now();
+  /*
   ROS_INFO("%+17.7e %+17.7e %+17.7e ", _result->actual.time_from_start.toSec(),
            _result->desired.time_from_start.toSec(),
            _result->error.time_from_start.toSec());
+*/
+}
+void FollowJointTrajectoryActionWrapper::active_action() {
+  action_accepted_time_ = ros::Time::now();
+  ROS_INFO("action accepted");
 }
 } // namespace opstop_ros
