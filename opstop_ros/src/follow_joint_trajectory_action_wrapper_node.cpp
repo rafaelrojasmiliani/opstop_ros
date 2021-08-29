@@ -12,6 +12,7 @@ void my_get_param(T &_val, ros::NodeHandle &_nh, const std::string &_param_name,
   if (_nh.getParam(_param_name, xmlval) and xmlval.getType() == _xml_type) {
     try {
       _val = static_cast<T>(xmlval);
+      ROS_INFO_STREAM(_param_name << " is set " << _val);
     } catch (XmlRpc::XmlRpcException) {
       ROS_INFO_STREAM(_param_name << " is set to default " << _val);
     }

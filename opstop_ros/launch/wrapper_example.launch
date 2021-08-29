@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="action_ns"/>
   <arg name="control_name"/>
   <arg name="rate" default="0.1"/>
   <arg name="control_step" default="0.005"/>
@@ -10,10 +9,11 @@
   <arg name="has_time_feedback" default="true"/>
   <arg name="optimization_window_milliseconds" default="200"/>
   <arg name="network_window_milliseconds" default="50"/>
+  <arg name="network_delay_milliseconds" default="10"/>
   <rosparam file="$(find opstop_ros)/config/example_control_conf.yaml" command="load"/>
   <node name="wrapper" pkg="opstop_ros" type="follow_joint_trajectory_wrapper" respawn="false" output="screen">
     <param name="action_name" value="follow_joint_gspline"/>
-    <param name="target_action_ns" value="$(arg action_ns)"/>
+    <param name="target_action_ns" value="$(arg control_name)"/>
     <param name="control_step" value="$(arg control_step)"/>
     <param name="optimization_window_milliseconds" value="$(arg optimization_window_milliseconds)"/>
     <param name="network_window_milliseconds" value="$(arg network_window_milliseconds)"/>
@@ -24,7 +24,7 @@
     <param name="number_of_waypoints" value="$(arg number_of_waypoints)"/>
     <param name="waypoint_radius" value="$(arg waypoint_radius)"/>
     <param name="execution_time" value="$(arg execution_time)"/>
-    <param name="action_ns" value=""/>
     <param name="control_name" value="$(arg control_name)"/>
+    <param name="network_delay_milliseconds" value="$(arg network_delay_milliseconds)"/>
   </node>
 </launch>

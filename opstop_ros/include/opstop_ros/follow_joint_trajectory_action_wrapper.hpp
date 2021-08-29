@@ -39,7 +39,8 @@ public:
             _name, _fjta_name, _control_step),
         trajectory_(nullptr), time_from_start_to_stop_(0.0),
         optimization_window_milisec_(_optimization_window),
-        network_window_milisec_(_network_window) {}
+        network_window_milisec_(_network_window),
+        has_time_feedback_(_has_time_feedback) {}
 
   virtual ~FollowJointTrajectoryActionWrapper() = default;
 

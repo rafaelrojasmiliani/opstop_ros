@@ -40,7 +40,7 @@ class Node:
     def __init__(self):
         rospy.init_node('gsplines_plotter')
         self.params = {}
-        self.params['action_ns'] = "pos_joint_traj_controller"
+        self.params['control_name'] = "pos_joint_traj_controller"
         self.params['title'] = "plot"
         matplotlib.use("Qt5agg")
 
@@ -48,7 +48,7 @@ class Node:
             self.params[key] = rospy.get_param('~'+key, value)
 
         self.subs_ = rospy.Subscriber(
-            self.params['action_ns'] +
+            self.params['control_name'] +
             "/follow_joint_trajectory/goal", FollowJointTrajectoryActionGoal,
             self.callback_goal)
 
@@ -94,12 +94,11 @@ class Node:
         if rospy.get_param('/use_sim_time', False):
             time_0 = 0.0
         else:
-            time_0 = time.mktime(
-                datetime.date.today().timetuple()) + now.hour*3600
+            time_0 = np.trunc(_initial_time/10)*10
 
         time_spam = np.array([_initial_time +
                               point.time_from_start.to_sec()
-                              for point in _trj_msg.points]) - time_0
+                              for point in _trj_msg.points])
 
         self.current_initial_time_ = time_spam[0]
 
@@ -123,7 +122,7 @@ class Node:
             fmt = 'r*-'
 
         self.previous_final_time_ = time_spam[-1]
-
+        time_spam -= time_0
         for row_idx, row_attr in enumerate(rows):
             for col_idx, col_name in enumerate(cols):
                 array_to_plot = [getattr(point, row_attr)[col_idx]
