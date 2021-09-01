@@ -30,19 +30,15 @@ void FollowJointTrajectoryActionWrapper::prehemption_action() {
 
   prehemption_time_ = ros::Time::now();
 
-  ROS_INFO("prehemtion time %+.3lf",
-           prehemption_time_.toSec() -
-               std::trunc(prehemption_time_.toSec() / 100.0) * 100.0);
-
   double ti = (prehemption_time_ - desired_motion_start_time_).toSec() +
               (optimization_window_milisec_ + network_window_milisec_) * 1.0e-3;
 
-  ROS_INFO("ti = %+.3lf", ti);
   std_msgs::Header stop_motion_header;
   stop_motion_header.stamp = desired_motion_start_time_ + ros::Duration(ti);
-  ROS_INFO("prehemtion time %+.3lf",
-           stop_motion_header.stamp.toSec() -
-               std::trunc(stop_motion_header.stamp.toSec() / 100.0) * 100.0);
+
+  ROS_INFO("Prehemtion request at %.3lf, time from start to stop ti = %.3lf, "
+           "stop trajectry starts at %.3lf",
+           prehemption_time_.toSec(), ti, stop_motion_header.stamp.toSec());
 
   auto optimization_start_time = std::chrono::high_resolution_clock::now();
 
@@ -68,7 +64,7 @@ void FollowJointTrajectoryActionWrapper::prehemption_action() {
       optimization_complete_time - optimization_start_time;
 
   if (computation_time_millisecods.count() > optimization_window_milisec_) {
-    ROS_ERROR("optimizaion done in to mmuch time, calleling goal");
+    ROS_ERROR("optimizaion took too much time, canceling goal");
     action_client_->cancelGoal();
   } else {
     ROS_ERROR("goal time stamp %lf",
