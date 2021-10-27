@@ -16,12 +16,11 @@ private:
 
   double optimization_window_milisec_;
   double network_window_milisec_;
+  double maximum_acceleration_;
 
   ros::Time prehemption_time_;
   ros::Time last_update_time_;
   ros::Time action_accepted_time_;
-
-  bool has_time_feedback_;
 
 public:
   FollowJointTrajectoryActionWrapper(
@@ -34,13 +33,13 @@ public:
                                      double _control_step,
                                      double _optimization_window,
                                      double _network_window,
-                                     bool _has_time_feedback)
+                                     double _maximum_acceleration)
       : gsplines_follow_trajectory::FollowJointTrajectoryActionWrapper(
             _name, _fjta_name, _control_step),
         trajectory_(nullptr), time_from_start_to_stop_(0.0),
         optimization_window_milisec_(_optimization_window),
         network_window_milisec_(_network_window),
-        has_time_feedback_(_has_time_feedback) {}
+        maximum_acceleration_(_maximum_acceleration) {}
 
   virtual ~FollowJointTrajectoryActionWrapper() = default;
 

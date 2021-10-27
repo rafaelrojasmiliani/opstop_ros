@@ -46,7 +46,8 @@ void FollowJointTrajectoryActionWrapper::prehemption_action() {
       (optimization_window_milisec_ + network_window_milisec_);
 
   gsplines::functions::FunctionExpression diffeo =
-      opstop::minimum_time_bouded_acceleration(*trajectory_, ti, 2.5);
+      opstop::minimum_time_bouded_acceleration(*trajectory_, ti,
+                                               maximum_acceleration_);
 
   double end_time = diffeo.get_domain().second;
   gsplines::functions::FunctionExpression stop_trj =
@@ -62,13 +63,12 @@ void FollowJointTrajectoryActionWrapper::prehemption_action() {
 
   std::chrono::duration<double, std::milli> computation_time_millisecods =
       optimization_complete_time - optimization_start_time;
+  ROS_INFO("Optimization time %.3lf ms", computation_time_millisecods.count());
 
   if (computation_time_millisecods.count() > optimization_window_milisec_) {
     ROS_ERROR("optimizaion took too much time, canceling goal");
     action_client_->cancelGoal();
   } else {
-    ROS_ERROR("goal time stamp %lf",
-              goal_to_forward.trajectory.header.stamp.toSec());
     action_client_->sendGoal(
         goal_to_forward,
         boost::bind(&FollowJointTrajectoryActionWrapper::done_action, this, _1,

@@ -5,7 +5,7 @@ install_deps(){
     apt-get update
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confnew"  build-essential cmake python3-dev mono-complete golang nodejs default-jdk npm clang-tidy-9 clang-format-10 apt-transport-https ca-certificates gnupg software-properties-common wget g++-8 golang clang jsonlint jq libxml2-utils
 
-    pip3 install cmakelang autopep8 pylint flake8 yamllint yamlfix yamlfmt
+    pip3 install cmakelang autopep8 pylint flake8 yamllint yamlfix yamlfmt isort
 
     npm install -g npm@latest-6
     npm install --save-dev --save-exact prettier

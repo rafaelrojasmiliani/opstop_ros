@@ -27,6 +27,7 @@ int main(int argc, char **argv) {
   ros::NodeHandle node("~");
   XmlRpc::XmlRpcValue xmlval;
   double control_step = 0.01;
+  double maximum_acceleration = 2.0;
   int optimization_window_milisec = 100.0;
   int network_window_milisec = 50.0;
   bool has_time_feedback = true;
@@ -50,12 +51,12 @@ int main(int argc, char **argv) {
   my_get_param(network_window_milisec, node, "network_window_milliseconds",
                XmlRpc::XmlRpcValue::TypeInt);
 
-  my_get_param(has_time_feedback, node, "has_time_feedback",
-               XmlRpc::XmlRpcValue::TypeBoolean);
+  my_get_param(maximum_acceleration, node, "maximum_acceleration",
+               XmlRpc::XmlRpcValue::TypeDouble);
 
   opstop_ros::FollowJointTrajectoryActionWrapper wrapper(
       action_name, target_action_ns, control_step, optimization_window_milisec,
-      network_window_milisec, has_time_feedback);
+      network_window_milisec, maximum_acceleration);
 
   ros::spin();
 
