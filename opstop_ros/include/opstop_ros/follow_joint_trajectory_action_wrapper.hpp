@@ -1,6 +1,6 @@
 #ifndef FOLLOW_JOINT_TRAJECTORY_ACTION_WRAPPER_H
 #define FOLLOW_JOINT_TRAJECTORY_ACTION_WRAPPER_H
-#include <gsplines/Functions/FunctionExpression.hpp>
+#include <gsplines/Functions/FunctionBase.hpp>
 
 #include <gsplines_follow_trajectory/follow_joint_trajectory_action_wrapper.hpp>
 namespace opstop_ros {
@@ -8,7 +8,7 @@ namespace opstop_ros {
 class FollowJointTrajectoryActionWrapper
     : public gsplines_follow_trajectory::FollowJointTrajectoryActionWrapper {
 private:
-  std::unique_ptr<gsplines::functions::FunctionExpression> trajectory_;
+  std::unique_ptr<gsplines::functions::FunctionBase> trajectory_;
   double time_from_start_to_stop_;
   double expected_delay_;
 

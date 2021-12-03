@@ -1,0 +1,86 @@
+#! /usr/bin/env python
+"""
+    Listest to gsplines and plot them
+"""
+from functools import partial
+
+import rospy
+from actionlib_msgs.msg import GoalID, GoalStatus, GoalStatusArray
+
+
+class Node:
+    """ Generic node class"""
+
+    def __init__(self):
+        rospy.init_node('action_transition_overlay_text_publisher')
+        self.params = {}
+        self.params['gsplines_action_name'] = "follow_joint_gspline"
+        self.params['control_name'] = ""
+        self.params['time_to_stop_seconds'] = 1.6
+
+        for key, value in self.params.items():
+            self.params[key] = rospy.get_param('~'+key, value)
+
+        self.subs_ = rospy.Subscriber(
+            self.params['gsplines_action_name']+'/status',
+            GoalStatusArray,
+            self.status_callback)
+
+        self.follow_joint_trajectory_cancel_ = rospy.Publisher(
+            self.params['control_name']+'/follow_joint_trajectory/cancel',
+            GoalID, queue_size=4)
+
+        print('----------------------------------')
+        print(self.follow_joint_trajectory_cancel_.resolved_name)
+        print('----------------------------------')
+
+        self.follow_joint_gspline_cancel_ = rospy.Publisher(
+            self.params['gsplines_action_name']+'/cancel',
+            GoalID, queue_size=4)
+
+        self.actual_status_ = 3
+        self.time_to_stop_seconds_ = self.params['time_to_stop_seconds']
+
+        goal = GoalID()
+        self.stop_gspline_ = partial(
+            self.follow_joint_gspline_cancel_.publish, goal)
+
+        self.stop_trajectory_ = partial(
+            self.follow_joint_trajectory_cancel_.publish, goal)
+
+        self.cancel_function = self.stop_gspline_
+
+        self.counter_ = 0
+
+    def status_callback(self, _msg: GoalStatusArray):
+        """ plot received message"""
+        if len(_msg.status_list) == 0:
+            return
+
+        status = _msg.status_list[-1].status
+
+        if self.actual_status_ != status:
+            # The state has changed
+            if status == GoalStatus.ACTIVE:
+                print('stat has changed -----------------------------')
+                print(self.cancel_function)
+                if self.counter_ % 2 == 0:
+                    rospy.Timer(rospy.Duration.from_sec(
+                        self.time_to_stop_seconds_),
+                        self.call_cancel, oneshot=True)
+                self.counter_ += 1
+            # The state update the status
+            self.actual_status_ = status
+
+    def call_cancel(self, _msg: GoalID):
+        """ plot received message"""
+        self.cancel_function()
+        if self.cancel_function is self.stop_gspline_:
+            self.cancel_function = self.stop_trajectory_
+        else:
+            self.cancel_function = self.stop_gspline_
+
+
+if __name__ == "__main__":
+    tr = Node()
+    rospy.spin()

@@ -25,13 +25,13 @@ main(){
 
     DOCKER_VIDEO_OPTIONS="${DOCKER_NVIDIA_OPTIONS} --env=DISPLAY --env=QT_X11_NO_MITSHM=1 --env=XAUTHORITY=$XAUTH --volume=$XAUTH:$XAUTH --volume=/tmp/.X11-unix:/tmp/.X11-unix:rw"
 
-    OPTIND=1 
+    OPTIND=1
 
     options=$(getopt -o '' --long "network: " -- "$@")
 
     eval set -- "$options"
 
-    [ $? -eq 0 ] || { 
+    [ $? -eq 0 ] || {
             echo "Incorrect options provided"
         exit 1
     }
@@ -56,12 +56,13 @@ main(){
 	    fi
     else
 
-        DOCKER_NETWORK_OPTIONS="--env=ROS_MASTER_URI=http://127.0.0.1:11311 --env=ROS_MASTER_IP=127.0.0.1 --env=ROS_IP=127.0.0.1" 
+        DOCKER_NETWORK_OPTIONS="--env=ROS_MASTER_URI=http://127.0.0.1:11311 --env=ROS_MASTER_IP=127.0.0.1 --env=ROS_IP=127.0.0.1"
     fi
 
     docker run -it \
         ${DOCKER_VIDEO_OPTIONS} \
         ${DOCKER_NETWORK_OPTIONS} \
+        --privileged \
         --volume $(pwd)/../:/catkinws/src/ \
         --user $(id -u):$(id -g) \
         opstop_ros bash
