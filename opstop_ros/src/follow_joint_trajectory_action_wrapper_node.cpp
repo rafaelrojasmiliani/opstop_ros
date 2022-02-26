@@ -17,7 +17,7 @@ void my_get_param(T &_val, ros::NodeHandle &_nh, const std::string &_param_name,
       _val = static_cast<T>(xmlval);
       ROS_INFO_STREAM(_param_name << " is set " << _val);
     } catch (XmlRpc::XmlRpcException) {
-      ROS_INFO_STREAM(_param_name << " is set to default " << _val);
+      ROS_INFO_STREAM(_param_name << " (exeption) is set to default " << _val);
     }
   } else {
     ROS_INFO_STREAM(_param_name << " is set to default " << _val);
@@ -27,7 +27,8 @@ void my_get_param(T &_val, ros::NodeHandle &_nh, const std::string &_param_name,
 int main(int argc, char **argv) {
 
   ros::init(argc, argv, "wrapper");
-  ros::NodeHandle node("~");
+  ros::NodeHandle nh_priv("~");
+  ros::NodeHandle nh;
   XmlRpc::XmlRpcValue xmlval;
   double control_step = 0.01;
   double maximum_acceleration = 2.0;
@@ -39,26 +40,26 @@ int main(int argc, char **argv) {
   std::string action_name = "follow_joint_gspline";
   std::string target_action_ns = "pos_joint_traj_controller";
 
-  my_get_param(control_step, node, "control_step",
+  my_get_param(control_step, nh_priv, "control_step",
                XmlRpc::XmlRpcValue::TypeDouble);
 
-  my_get_param(action_name, node, "action_name",
+  my_get_param(action_name, nh_priv, "action_name",
                XmlRpc::XmlRpcValue::TypeString);
 
-  my_get_param(target_action_ns, node, "target_action_ns",
+  my_get_param(target_action_ns, nh_priv, "target_action_ns",
                XmlRpc::XmlRpcValue::TypeString);
 
-  my_get_param(optimization_window_milisec, node,
+  my_get_param(optimization_window_milisec, nh_priv,
                "optimization_window_milliseconds",
                XmlRpc::XmlRpcValue::TypeInt);
 
-  my_get_param(network_window_milisec, node, "network_window_milliseconds",
+  my_get_param(network_window_milisec, nh_priv, "network_window_milliseconds",
                XmlRpc::XmlRpcValue::TypeInt);
 
-  my_get_param(maximum_acceleration, node, "maximum_acceleration",
+  my_get_param(maximum_acceleration, nh_priv, "maximum_acceleration",
                XmlRpc::XmlRpcValue::TypeDouble);
 
-  my_get_param(robot_description, node, "robot_description",
+  my_get_param(robot_description, nh_priv, "robot_description",
                XmlRpc::XmlRpcValue::TypeString);
 
   pinocchio::Model model;

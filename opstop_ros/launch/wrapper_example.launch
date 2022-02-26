@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <launch>
+  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${node}, ${file}:${function}:${line}]: ${message}"/>
   <arg name="control_name"/>
+  <arg name="robot_description_file" doc="Robot description for pinocchio"/>
   <arg name="rate" default="0.1"/>
   <arg name="control_step" default="0.005"/>
   <arg name="number_of_waypoints" default="5"/>
@@ -19,6 +21,7 @@
     <param name="optimization_window_milliseconds" value="$(arg optimization_window_milliseconds)"/>
     <param name="network_window_milliseconds" value="$(arg network_window_milliseconds)"/>
     <param name="maximum_acceleration" value="$(arg maximum_acceleration)"/>
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(arg robot_description_file)"/>
   </node>
   <node name="motion_generator" pkg="gsplines_follow_trajectory" type="random_minimum_jerk_gsplines" respawn="false" output="screen">
     <param name="rate" value="$(arg rate)"/>

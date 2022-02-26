@@ -1,37 +1,22 @@
 # This file tells docker what image must be created
 # in order to be ahble to test this library
-FROM ubuntu:20.04
+FROM rafa606/ros_noetic_vim
 
 RUN apt clean
 ENV TZ=Europe/Rome
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
-RUN apt-get update
-
-# Install packages
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confnew" \
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confnew" \
                     python3-pip git iputils-ping net-tools netcat screen build-essential lsb-release gnupg2 curl less \
                     python3-sympy coinor-libipopt-dev sudo valgrind \
                     build-essential pkg-config git \
                     liblapack-dev liblapack3 libopenblas-base libopenblas-dev \
                     libgfortran-7-dev cmake libgsl-dev gdb python3-tk libeigen3-dev \
-                    libboost-math-dev
-
-COPY vim_installation.bash /
-RUN cd / && bash vim_installation.bash
-COPY configfiles/vimrc /etc/vim/
-COPY configfiles/ycm_extra_conf.py /etc/vim/
-#RUN vim -c ':call doge#install()' -c ':q'
-RUN chmod 777 /etc/vim/
-RUN chmod 777 /etc/vim/vimrc
-RUN chmod 777 /etc/vim/bundle
-
-RUN pip3 install setuptools matplotlib Mosek scipy quadpy six cython tk
-
-RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
-RUN apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
-RUN apt-get update
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confnew" \
+                    libboost-math-dev \
+    && pip3 install setuptools matplotlib Mosek scipy quadpy six cython tk \
+    && sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' \
+    && apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654 \
+    && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confnew" \
                     ros-noetic-ifopt exuberant-ctags ros-noetic-ros-base python3-catkin-tools \
                     ros-noetic-plotjuggler \
                     ros-noetic-joint-trajectory-controller \
@@ -51,21 +36,20 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends -o
                     ros-noetic-rqt-gui-py \
                     ros-noetic-rqt-py-common \
                     ros-noetic-moveit-msgs \
-                    ros-noetic-rqt-joint-trajectory-controller
+                    ros-noetic-rqt-joint-trajectory-controller \
+                    ros-noetic-jsk-rviz-plugins \
+    && echo "deb [arch=amd64] http://robotpkg.openrobots.org/packages/debian/pub $(lsb_release -cs) robotpkg" | tee /etc/apt/sources.list.d/robotpkg.list \
+    && curl http://robotpkg.openrobots.org/packages/debian/robotpkg.key | apt-key add -
 
-RUN echo "deb [arch=amd64] http://robotpkg.openrobots.org/packages/debian/pub $(lsb_release -cs) robotpkg" | tee /etc/apt/sources.list.d/robotpkg.list
-RUN curl http://robotpkg.openrobots.org/packages/debian/robotpkg.key | apt-key add -
 
-
-RUN apt-get update
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confnew" \
-                    robotpkg-py38-pinocchio
-
-RUN echo "export PATH=/opt/openrobots/bin:$PATH" >> /etc/bash.bashrc
-RUN echo "export PKG_CONFIG_PATH=/opt/openrobots/lib/pkgconfig:$PKG_CONFIG_PATH" >> /etc/bash.bashrc
-RUN echo "export LD_LIBRARY_PATH=/opt/openrobots/lib:$LD_LIBRARY_PATH" >> /etc/bash.bashrc
-RUN echo "export PYTHONPATH=/opt/openrobots/lib/python3.8/site-packages:$PYTHONPATH" >> /etc/bash.bashrc
-RUN echo "export CMAKE_PREFIX_PATH=/opt/openrobots:$CMAKE_PREFIX_PATH" >> /etc/bash.bashrc
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confnew" \
+                    robotpkg-py38-pinocchio \
+    && echo "export PATH=/opt/openrobots/bin:$PATH" >> /etc/bash.bashrc \
+    && echo "export PKG_CONFIG_PATH=/opt/openrobots/lib/pkgconfig:$PKG_CONFIG_PATH" >> /etc/bash.bashrc \
+    && echo "export LD_LIBRARY_PATH=/opt/openrobots/lib:$LD_LIBRARY_PATH" >> /etc/bash.bashrc \
+    && echo "export PYTHONPATH=/opt/openrobots/lib/python3.8/site-packages:$PYTHONPATH" >> /etc/bash.bashrc \
+    && echo "export CMAKE_PREFIX_PATH=/opt/openrobots:$CMAKE_PREFIX_PATH" >> /etc/bash.bashrc
 
 RUN mkdir -p /aux_ws/src
 RUN git clone https://github.com/rafaelrojasmiliani/ur_description_minimal.git /aux_ws/src/ur_description_minimal

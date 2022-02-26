@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="control_name" default="position_joint_trajectory_controller"/>
+  <arg name="robot_description_file" default="/catkinws/src/opstop_ros/urdf/panda_arm.urdf"/>
   <arg name="rate" default="0.1"/>
   <arg name="control_step" default="0.08"/>
   <arg name="number_of_waypoints" default="5"/>
@@ -15,6 +16,7 @@
   <include file="$(find opstop_ros)/launch/wrapper_example.launch">
     <!-- all vars that included.launch requires must be set -->
     <arg name="control_name" value="$(arg control_name)"/>
+    <arg name="robot_description_file" value="$(arg robot_description_file)"/>
     <arg name="rate" value="$(arg rate)"/>
     <arg name="control_step" value="$(arg control_step)"/>
     <arg name="number_of_waypoints" value="$(arg number_of_waypoints)"/>
