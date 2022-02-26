@@ -1,5 +1,7 @@
 #ifndef FOLLOW_JOINT_TRAJECTORY_ACTION_WRAPPER_H
 #define FOLLOW_JOINT_TRAJECTORY_ACTION_WRAPPER_H
+#include <pinocchio/algorithm/model.hpp>
+// --
 #include <gsplines/Functions/FunctionBase.hpp>
 
 #include <gsplines_follow_trajectory/follow_joint_trajectory_action_wrapper.hpp>
@@ -21,6 +23,7 @@ private:
   ros::Time prehemption_time_;
   ros::Time last_update_time_;
   ros::Time action_accepted_time_;
+  pinocchio::Model model_;
 
 public:
   FollowJointTrajectoryActionWrapper(
@@ -28,18 +31,16 @@ public:
   FollowJointTrajectoryActionWrapper &
   operator=(const FollowJointTrajectoryActionWrapper &) = delete;
 
-  FollowJointTrajectoryActionWrapper(const std::string &_name,
-                                     const std::string &_fjta_name,
-                                     double _control_step,
-                                     double _optimization_window,
-                                     double _network_window,
-                                     double _maximum_acceleration)
+  FollowJointTrajectoryActionWrapper(
+      const std::string &_name, const std::string &_fjta_name,
+      double _control_step, double _optimization_window, double _network_window,
+      double _maximum_acceleration, const pinocchio::Model &_model)
       : gsplines_follow_trajectory::FollowJointTrajectoryActionWrapper(
             _name, _fjta_name, _control_step),
         trajectory_(nullptr), time_from_start_to_stop_(0.0),
         optimization_window_milisec_(_optimization_window),
         network_window_milisec_(_network_window),
-        maximum_acceleration_(_maximum_acceleration) {}
+        maximum_acceleration_(_maximum_acceleration), model_(_model) {}
 
   virtual ~FollowJointTrajectoryActionWrapper() = default;
 

@@ -1,8 +1,11 @@
+#include <opstop_ros/follow_joint_trajectory_action_wrapper.hpp>
+#include <pinocchio/parsers/urdf.hpp>
+// --
+#include <gsplines_ros/gsplines_ros.hpp>
+// --
 #include <ros/ros.h>
 #include <xmlrpcpp/XmlRpcException.h>
 #include <xmlrpcpp/XmlRpcValue.h>
-
-#include <opstop_ros/follow_joint_trajectory_action_wrapper.hpp>
 
 template <typename T>
 void my_get_param(T &_val, ros::NodeHandle &_nh, const std::string &_param_name,
@@ -31,6 +34,7 @@ int main(int argc, char **argv) {
   int optimization_window_milisec = 100.0;
   int network_window_milisec = 50.0;
   bool has_time_feedback = true;
+  std::string robot_description;
 
   std::string action_name = "follow_joint_gspline";
   std::string target_action_ns = "pos_joint_traj_controller";
@@ -54,10 +58,14 @@ int main(int argc, char **argv) {
   my_get_param(maximum_acceleration, node, "maximum_acceleration",
                XmlRpc::XmlRpcValue::TypeDouble);
 
+  my_get_param(robot_description, node, "robot_description",
+               XmlRpc::XmlRpcValue::TypeString);
+
+  pinocchio::Model model;
+  pinocchio::urdf::buildModelFromXML(robot_description, model);
   opstop_ros::FollowJointTrajectoryActionWrapper wrapper(
       action_name, target_action_ns, control_step, optimization_window_milisec,
-      network_window_milisec, maximum_acceleration);
-
+      network_window_milisec, maximum_acceleration, model);
   ros::spin();
 
   return 0;

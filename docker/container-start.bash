@@ -48,7 +48,7 @@ main(){
     fi
 	    if [[ $1 == "fhi" ]]; then
 
-		    DOCKER_NETWORK_OPTIONS="--net=br0 --env=ROS_MASTER_URI=http://172.16.0.1:11311 --env=ROS_IP=172.16.0.202 --ip 172.16.0.202"
+		    DOCKER_NETWORK_OPTIONS="--net=br0 --env=ROS_MASTER_URI=http://172.16.0.203:11311 --env=ROS_IP=172.16.0.202 --ip 172.16.0.202"
 
 		    if [[ ! $(docker network ls | /bin/grep br0 ) ]]; then
 			    docker network create --driver=bridge --ip-range=172.16.0.0/24 --subnet=172.16.0.0/24 --aux-address='ip1=172.16.0.201' -o "com.docker.network.bridge.name=br0" br0

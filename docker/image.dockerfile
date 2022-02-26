@@ -104,3 +104,12 @@ RUN echo '[server]' >> /etc/avahi/avahi-daemon.conf
 RUN echo 'enable-dbus=no' >> /etc/avahi/avahi-daemon.conf
 RUN echo 'domain-name=local' >> /etc/avahi/avahi-daemon.conf
 RUN echo 'host-name=gsplines-ros' >> /etc/avahi/avahi-daemon.conf
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-confnew" \
+        gfortran libmetis-dev
+RUN git clone https://github.com/coin-or-tools/ThirdParty-HSL.git /hsl
+COPY coinhsl /hsl/coinhsl
+COPY coinhsl /hsl/coinhsl
+RUN cd /hsl && ./configure && make && make install
+RUN ls /usr/local/lib
+RUN cp $(find /usr/local/lib -name 'libcoinhsl*.so*' -type f) /usr/local/lib/libhsl.so
+RUN echo "export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH" >> /etc/bash.bashrc

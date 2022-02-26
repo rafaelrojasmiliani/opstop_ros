@@ -1,10 +1,11 @@
 
+#include <opstop/ipopt_problem.hpp>
+#include <opstop_ros/follow_joint_trajectory_action_wrapper.hpp>
+// --
 #include <chrono> // for high_resolution_clock
 #include <gsplines/Functions/ElementalFunctions.hpp>
 #include <gsplines_ros/gsplines_ros.hpp>
 #include <math.h>
-#include <opstop/ipopt_problem.hpp>
-#include <opstop_ros/follow_joint_trajectory_action_wrapper.hpp>
 namespace opstop_ros {
 
 void FollowJointTrajectoryActionWrapper::action_callback() {
@@ -47,7 +48,7 @@ void FollowJointTrajectoryActionWrapper::prehemption_action() {
 
   gsplines::functions::FunctionExpression diffeo =
       opstop::minimum_time_bouded_acceleration(*trajectory_, ti,
-                                               maximum_acceleration_);
+                                               maximum_acceleration_, model_);
 
   double end_time = diffeo.get_domain().second;
   gsplines::functions::FunctionExpression stop_trj =
