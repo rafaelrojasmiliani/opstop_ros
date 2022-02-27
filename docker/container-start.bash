@@ -59,7 +59,7 @@ main(){
         DOCKER_NETWORK_OPTIONS="--env=ROS_MASTER_URI=http://127.0.0.1:11311 --env=ROS_MASTER_IP=127.0.0.1 --env=ROS_IP=127.0.0.1"
     fi
 
-    docker run -it \
+    docker run -it --rm \
         ${DOCKER_VIDEO_OPTIONS} \
         ${DOCKER_NETWORK_OPTIONS} \
         --privileged \

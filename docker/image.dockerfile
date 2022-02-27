@@ -71,7 +71,6 @@ RUN echo "${myuser}:docker" | chpasswd
 
 
 RUN echo "source /opt/ros/noetic/setup.bash" >> /etc/bash.bashrc
-RUN echo "export ROSCONSOLE_FORMAT='[${severity}] - ${node}: [${time}] ${message}'" >> /etc/bash.bashrc
 WORKDIR /catkinws
 RUN chmod 777 /catkinws
 
@@ -97,3 +96,4 @@ RUN cd /hsl && ./configure && make && make install
 RUN ls /usr/local/lib
 RUN cp $(find /usr/local/lib -name 'libcoinhsl*.so*' -type f) /usr/local/lib/libhsl.so
 RUN echo "export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH" >> /etc/bash.bashrc
+RUN echo "export ROSCONSOLE_FORMAT='[\${severity}] - \${node}: [\${file}:\${function}:\${line}] \${message}'" >> /etc/bash.bashrc

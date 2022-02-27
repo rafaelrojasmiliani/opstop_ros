@@ -8,6 +8,8 @@
 #include <math.h>
 namespace opstop_ros {
 
+const std::vector<std::string> smoothness_measures_available = {
+    "jerk_l2_max", "acceleration_max"};
 void FollowJointTrajectoryActionWrapper::action_callback() {
 
   const gsplines_msgs::FollowJointGSplineGoalConstPtr &goal =
@@ -46,10 +48,24 @@ void FollowJointTrajectoryActionWrapper::prehemption_action() {
   double total_window_milliseconds =
       (optimization_window_milisec_ + network_window_milisec_);
 
-  gsplines::functions::FunctionExpression diffeo =
-      opstop::minimum_time_bouded_acceleration(*trajectory_, ti,
-                                               maximum_acceleration_, model_);
+  static int aux_int = 0;
 
+  gsplines::functions::FunctionExpression diffeo =
+      (aux_int % 2 == 0)
+          ? opstop::minimum_time_bouded_acceleration(*trajectory_, ti, alpha_,
+                                                     model_, nglp_)
+          : opstop::minimum_time_bounded_jerk_l2(*trajectory_, ti, alpha_,
+                                                 model_, nglp_);
+
+  if (aux_int % 2 == 0) {
+    ROS_INFO_STREAM("+++++++++++++++++++++++++++++++++++++\n ---- minimizing "
+                    "with acceleration ----- \n ");
+  } else {
+
+    ROS_INFO_STREAM("+++++++++++++++++++++++++++++++++++++\n ---- minimizing "
+                    "with jerl l2 ----- \n ");
+  }
+  aux_int++;
   double end_time = diffeo.get_domain().second;
   gsplines::functions::FunctionExpression stop_trj =
       trajectory_->compose(diffeo).compose(

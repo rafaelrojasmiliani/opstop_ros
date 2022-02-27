@@ -5,14 +5,17 @@
   <arg name="rate" default="0.1"/>
   <arg name="control_step" default="0.08"/>
   <arg name="number_of_waypoints" default="5"/>
-  <arg name="waypoint_radius" default="0.3"/>
+  <arg name="waypoint_radius" default="0.35"/>
   <arg name="execution_time" default="5"/>
-  <arg name="optimization_window_milliseconds" default="120"/>
-  <arg name="network_window_milliseconds" default="10"/>
-  <arg name="network_delay_milliseconds" default="10"/>
-  <arg name="time_to_stop_seconds" default="1.5"/>
+  <arg name="optimization_window_milliseconds" default="60"/>
+  <arg name="network_window_milliseconds" default="5"/>
+  <arg name="network_delay_milliseconds" default="5"/>
+  <arg name="time_to_stop_seconds" default="2.5"/>
   <arg name="repeat" default="false"/>
   <arg name="maximum_acceleration" default="5.0"/>
+  <arg name="alpha" default="0.5"/>
+  <arg name="nglp" default="5"/>
+  <arg name="smoothness_measure" default="jerk_l2_max"/>
   <include file="$(find opstop_ros)/launch/wrapper_example.launch">
     <!-- all vars that included.launch requires must be set -->
     <arg name="control_name" value="$(arg control_name)"/>
@@ -26,7 +29,9 @@
     <arg name="network_window_milliseconds" value="$(arg network_window_milliseconds)"/>
     <arg name="network_delay_milliseconds" value="$(arg network_delay_milliseconds)"/>
     <arg name="repeat" value="$(arg repeat)"/>
-    <param name="maximum_acceleration" value="$(arg maximum_acceleration)"/>
+    <arg name="alpha" value="$(arg alpha)"/>
+    <arg name="nglp" value="$(arg nglp)"/>
+    <arg name="smoothness_measure" value="$(arg smoothness_measure)"/>
   </include>
   <node name="path_publisher" pkg="gsplines_ros" type="gspline_dk_path_publisher" respawn="false" output="screen">
     <param name="fixed_frame" value="panda_link0"/>
@@ -44,5 +49,5 @@
   <node name="plotter" pkg="opstop_ros" type="joint_trajectory_plotter" respawn="false" output="screen">
     <param name="control_name" value="$(arg control_name)"/>
   </node>
-  <node name="recording" pkg="rosbag" type="record" respawn="false" output="screen" args="record -O /catkinws/src/experiment.bag /position_joint_trajectory_controller/follow_joint_trajectory/goal /position_joint_trajectory_controller/follow_joint_trajectory/status /position_joint_trajectory_controller/follow_joint_trajectory/cancel /follow_joint_gspline/cancel /follow_joint_gspline/status /joint_states /tf /path"/>
+  <node name="recording" pkg="rosbag" type="record" respawn="false" output="screen" args="record -O /catkinws/src/experiment.bag position_joint_trajectory_controller/follow_joint_trajectory/goal position_joint_trajectory_controller/follow_joint_trajectory/status position_joint_trajectory_controller/follow_joint_trajectory/cancel follow_joint_gspline/cancel follow_joint_gspline/status joint_states tf path"/>
 </launch>
