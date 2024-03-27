@@ -10,29 +10,53 @@ namespace opstop_ros {
 
 const std::vector<std::string> smoothness_measures_available = {
     "jerk_l2_max", "acceleration_max"};
+
+FollowJointTrajectoryActionWrapper::FollowJointTrajectoryActionWrapper(
+    const std::string &_name, const std::string &_fjta_name,
+    double _control_step, double _optimization_window, double _network_window,
+    double _alpha, const std::string &_smoothness_measure,
+    const pinocchio::Model &_model, std::size_t _nglp)
+    : gsplines_follow_trajectory::FollowJointTrajectoryActionWrapper(
+          _name, _fjta_name, _control_step),
+      optimization_window_milisec_(_optimization_window),
+      network_window_milisec_(_network_window), alpha_(_alpha), model_(_model),
+      nglp_(_nglp), smoothness_measure_(_smoothness_measure) {}
+
+FollowJointTrajectoryActionWrapper::~FollowJointTrajectoryActionWrapper() =
+    default;
+
 void FollowJointTrajectoryActionWrapper::action_callback() {
 
+  /// Store the trajectory gsplines and forward the goal
+  /// to the follow joint trajectory action
+
+  // 1. accept the goal from the action server
   const gsplines_msgs::FollowJointGSplineGoalConstPtr &goal =
       action_server_->acceptNewGoal();
 
+  // 2. The the time when the trajectory must start
   desired_motion_start_time_ = goal->gspline.header.stamp;
 
+  // 3. Get the trajectory as a gspline.
   trajectory_ =
       gsplines_ros::gspline_msg_to_gspline(goal->gspline.gspline).move_clone();
 
-  ROS_INFO("desired start time %+.3lf",
+  ROS_INFO("desired start time %+.3lf", // NOLINT
            desired_motion_start_time_.toSec() -
                std::trunc(desired_motion_start_time_.toSec() / 100.0) * 100.0);
 
   current_goal_names_ = goal->gspline.name;
 
+  // 4. Forward the goal to the follow joint trajectory server
   forward_goal(goal);
 }
 
 void FollowJointTrajectoryActionWrapper::prehemption_action() {
 
+  // 1. Get the current time
   prehemption_time_ = ros::Time::now();
 
+  // 2. compute the time when the original trajectory should stop
   double ti = (prehemption_time_ - desired_motion_start_time_).toSec() +
               (optimization_window_milisec_ + network_window_milisec_) * 1.0e-3;
 
@@ -43,6 +67,7 @@ void FollowJointTrajectoryActionWrapper::prehemption_action() {
            "stop trajectry starts at %.3lf",
            prehemption_time_.toSec(), ti, stop_motion_header.stamp.toSec());
 
+  // 3. compute the time when the original trajectory should stop
   auto optimization_start_time = std::chrono::high_resolution_clock::now();
 
   double total_window_milliseconds =
@@ -67,12 +92,15 @@ void FollowJointTrajectoryActionWrapper::prehemption_action() {
   }
   aux_int++;
   double end_time = diffeo.get_domain().second;
+
+  // get the stopping trajectory
   gsplines::functions::FunctionExpression stop_trj =
       trajectory_->compose(diffeo).compose(
           gsplines::functions::Identity({ti, end_time}));
 
+  // get the new goal for the follow joint trajectory controller
   control_msgs::FollowJointTrajectoryGoal goal_to_forward =
-      gsplines_ros::function_expression_to_follow_joint_trajectory_goal(
+      gsplines_ros::function_to_follow_joint_trajectory_goal(
           stop_trj, current_goal_names_, ros::Duration(get_control_step()),
           stop_motion_header);
 
@@ -82,6 +110,7 @@ void FollowJointTrajectoryActionWrapper::prehemption_action() {
       optimization_complete_time - optimization_start_time;
   ROS_INFO("Optimization time %.3lf ms", computation_time_millisecods.count());
 
+  /// if it tool too much time to optimize call emergency stop
   if (computation_time_millisecods.count() > optimization_window_milisec_) {
     ROS_ERROR("optimizaion took too much time, canceling goal");
     action_client_->cancelGoal();

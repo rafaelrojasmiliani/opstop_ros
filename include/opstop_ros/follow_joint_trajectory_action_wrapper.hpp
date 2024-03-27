@@ -2,16 +2,30 @@
 #define FOLLOW_JOINT_TRAJECTORY_ACTION_WRAPPER_H
 #include <pinocchio/algorithm/model.hpp>
 // --
+
+#include <control_msgs/FollowJointTrajectoryFeedback.h>
+
 #include <gsplines/Functions/FunctionBase.hpp>
 
 #include <gsplines_follow_trajectory/follow_joint_trajectory_action_wrapper.hpp>
+
+#include <ros/duration.h>
+#include <ros/time.h>
+
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <vector>
+
 namespace opstop_ros {
 
+/// This is a relay/repeater node which translates FollowJointGSplineAction
+/// into a FollowJointTrajectoryAction able to smoothly stop a trajectory.
 class FollowJointTrajectoryActionWrapper
     : public gsplines_follow_trajectory::FollowJointTrajectoryActionWrapper {
 private:
   std::unique_ptr<gsplines::functions::FunctionBase> trajectory_;
-  double time_from_start_to_stop_;
+  double time_from_start_to_stop_ = 0.0;
   double expected_delay_;
 
   std::vector<std::string> current_goal_names_;
@@ -41,10 +55,10 @@ public:
     return true;
   }
 
-  FollowJointTrajectoryActionWrapper(
-      const FollowJointTrajectoryActionWrapper &) = delete;
-  FollowJointTrajectoryActionWrapper &
-  operator=(const FollowJointTrajectoryActionWrapper &) = delete;
+  // FollowJointTrajectoryActionWrapper(
+  //     const FollowJointTrajectoryActionWrapper &) = delete;
+  // FollowJointTrajectoryActionWrapper &
+  // operator=(const FollowJointTrajectoryActionWrapper &) = delete;
 
   /**
    * @brief Constructs a FollowJointTrajectoryActionWrapper object.
@@ -77,22 +91,33 @@ public:
       const std::string &_name, const std::string &_fjta_name,
       double _control_step, double _optimization_window, double _network_window,
       double _alpha, const std::string &_smoothness_measure,
-      const pinocchio::Model &_model, std::size_t _nglp)
-      : gsplines_follow_trajectory::FollowJointTrajectoryActionWrapper(
-            _name, _fjta_name, _control_step),
-        trajectory_(nullptr), time_from_start_to_stop_(0.0),
-        optimization_window_milisec_(_optimization_window),
-        network_window_milisec_(_network_window), alpha_(_alpha),
-        model_(_model), smoothness_measure_(_smoothness_measure), nglp_(_nglp) {
-  }
+      const pinocchio::Model &_model, std::size_t _nglp);
 
-  virtual ~FollowJointTrajectoryActionWrapper() = default;
+  /// Destructor
+  ~FollowJointTrajectoryActionWrapper() override;
 
-  void prehemption_action() override;
-  void active_action() override;
-
+  /**
+   * @brief Callback of the action server instantiated by this class. Here the
+   * action goal forwarding is implemented.
+   *
+   */
   void action_callback() override;
 
+  /// Action performed on prehmption request
+  void prehemption_action() override;
+
+  /**
+   * @brief Action executed when the target client stars the execution of the
+   * action
+   *
+   */
+  void active_action() override;
+
+  /**
+   * @brief action performed when feedback from the target action is received.
+   *
+   * @param _result feedback from the target action.
+   */
   void feedback_action(const control_msgs::FollowJointTrajectoryFeedbackConstPtr
                            &_result) override;
 };
