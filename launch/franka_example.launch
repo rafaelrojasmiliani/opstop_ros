@@ -1,53 +1,121 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="control_name" default="position_joint_trajectory_controller"/>
-  <arg name="robot_description_file" default="/catkinws/src/opstop_ros/urdf/panda_arm.urdf"/>
-  <arg name="rate" default="0.1"/>
-  <arg name="control_step" default="0.08"/>
-  <arg name="number_of_waypoints" default="5"/>
-  <arg name="waypoint_radius" default="0.35"/>
-  <arg name="execution_time" default="5"/>
-  <arg name="optimization_window_milliseconds" default="60"/>
-  <arg name="network_window_milliseconds" default="5"/>
-  <arg name="network_delay_milliseconds" default="5"/>
-  <arg name="time_to_stop_seconds" default="2.5"/>
-  <arg name="repeat" default="false"/>
-  <arg name="maximum_acceleration" default="5.0"/>
-  <arg name="alpha" default="0.5"/>
-  <arg name="nglp" default="5"/>
-  <arg name="smoothness_measure" default="jerk_l2_max"/>
-  <include file="$(find opstop_ros)/launch/wrapper_example.launch">
-    <!-- all vars that included.launch requires must be set -->
-    <arg name="control_name" value="$(arg control_name)"/>
-    <arg name="robot_description_file" value="$(arg robot_description_file)"/>
-    <arg name="rate" value="$(arg rate)"/>
-    <arg name="control_step" value="$(arg control_step)"/>
-    <arg name="number_of_waypoints" value="$(arg number_of_waypoints)"/>
-    <arg name="waypoint_radius" value="$(arg waypoint_radius)"/>
-    <arg name="execution_time" value="$(arg execution_time)"/>
-    <arg name="optimization_window_milliseconds" value="$(arg optimization_window_milliseconds)"/>
-    <arg name="network_window_milliseconds" value="$(arg network_window_milliseconds)"/>
-    <arg name="network_delay_milliseconds" value="$(arg network_delay_milliseconds)"/>
-    <arg name="repeat" value="$(arg repeat)"/>
-    <arg name="alpha" value="$(arg alpha)"/>
-    <arg name="nglp" value="$(arg nglp)"/>
-    <arg name="smoothness_measure" value="$(arg smoothness_measure)"/>
-  </include>
-  <node name="path_publisher" pkg="gsplines_ros" type="gspline_dk_path_publisher" respawn="false" output="screen">
-    <param name="fixed_frame" value="panda_link0"/>
-    <param name="frame" value="panda_hand"/>
-    <param name="plot_step" value="0.05"/>
-    <param name="control_name" value="$(arg control_name)"/>
-  </node>
-  <node pkg="rostopic" type="rostopic" name="point_publisher" args="pub /point_stamped geometry_msgs/PointStamped '{header: {seq: 0, stamp: {secs: 0, nsecs: 0},frame_id: 'panda_hand'}, point:{x: 0.0, y: 0.0,z: 0.0}}' -r 150" output="screen"/>
-  <node pkg="gsplines_follow_trajectory" type="joint_states_to_float" name="joint_states_to_float_publisher" output="screen"/>
-  <node pkg="gsplines_follow_trajectory" type="action_transtion_overlay_text_publisher" name="action_overlay_text" output="screen"/>
-  <node name="stopper" pkg="opstop_ros" type="timed_stopper" respawn="false" output="screen">
-    <param name="control_name" value="$(arg control_name)"/>
-    <param name="time_to_stop_seconds" value="$(arg time_to_stop_seconds)"/>
-  </node>
-  <node name="plotter" pkg="opstop_ros" type="joint_trajectory_plotter" respawn="false" output="screen">
-    <param name="control_name" value="$(arg control_name)"/>
-  </node>
-  <node name="recording" pkg="rosbag" type="record" respawn="false" output="screen" args="record -O /catkinws/src/experiment.bag position_joint_trajectory_controller/follow_joint_trajectory/goal position_joint_trajectory_controller/follow_joint_trajectory/status position_joint_trajectory_controller/follow_joint_trajectory/cancel follow_joint_gspline/cancel follow_joint_gspline/status joint_states tf path"/>
+    <!-- This example generates random trajectories and stop the robot at random intervals -->
+    <!-- It records several topics into rosbag for further analysis -->
+    <arg name="control_name"
+         default="position_joint_trajectory_controller" />
+    <arg name="robot_description_file"
+         default="/catkinws/src/opstop_ros/urdf/panda_arm.urdf" />
+    <arg name="rate"
+         default="0.1" />
+    <arg name="control_step"
+         default="0.08" />
+    <arg name="number_of_waypoints"
+         default="5" />
+    <arg name="waypoint_radius"
+         default="0.35" />
+    <arg name="execution_time"
+         default="5" />
+    <arg name="optimization_window_milliseconds"
+         default="60" />
+    <arg name="network_window_milliseconds"
+         default="5" />
+    <arg name="network_delay_milliseconds"
+         default="5" />
+    <arg name="time_to_stop_seconds"
+         default="2.5" />
+    <arg name="repeat"
+         default="false" />
+    <arg name="maximum_acceleration"
+         default="5.0" />
+    <arg name="alpha"
+         default="0.5"
+         doc="maximum increment of the smoothness measure" />
+    <arg name="nglp"
+         default="5" />
+    <arg name="smoothness_measure"
+         default="jerk_l2_max"
+         doc="smoothness measure to limit in the time minimization process" />
+    <include file="$(find opstop_ros)/launch/wrapper_example.launch">
+        <!-- all vars that included.launch requires must be set -->
+        <arg name="control_name"
+             value="$(arg control_name)" />
+        <arg name="robot_description_file"
+             value="$(arg robot_description_file)" />
+        <arg name="rate"
+             value="$(arg rate)" />
+        <arg name="control_step"
+             value="$(arg control_step)" />
+        <arg name="number_of_waypoints"
+             value="$(arg number_of_waypoints)" />
+        <arg name="waypoint_radius"
+             value="$(arg waypoint_radius)" />
+        <arg name="execution_time"
+             value="$(arg execution_time)" />
+        <arg name="optimization_window_milliseconds"
+             value="$(arg optimization_window_milliseconds)" />
+        <arg name="network_window_milliseconds"
+             value="$(arg network_window_milliseconds)" />
+        <arg name="network_delay_milliseconds"
+             value="$(arg network_delay_milliseconds)" />
+        <arg name="repeat"
+             value="$(arg repeat)" />
+        <arg name="alpha"
+             value="$(arg alpha)" />
+        <arg name="nglp"
+             value="$(arg nglp)" />
+        <arg name="smoothness_measure"
+             value="$(arg smoothness_measure)" />
+    </include>
+    <node name="path_publisher"
+          pkg="gsplines_ros"
+          type="gspline_dk_path_publisher"
+          respawn="false"
+          output="screen">
+        <param name="fixed_frame"
+               value="panda_link0" />
+        <param name="frame"
+               value="panda_hand" />
+        <param name="plot_step"
+               value="0.05" />
+        <param name="control_name"
+               value="$(arg control_name)" />
+    </node>
+    <node pkg="rostopic"
+          type="rostopic"
+          name="point_publisher"
+          args="pub /point_stamped geometry_msgs/PointStamped '{header: {seq: 0, stamp: {secs: 0, nsecs: 0},frame_id: 'panda_hand'}, point:{x: 0.0, y: 0.0,z: 0.0}}' -r 150"
+          output="screen" />
+    <node pkg="gsplines_follow_trajectory"
+          type="joint_states_to_float"
+          name="joint_states_to_float_publisher"
+          output="screen" />
+    <node pkg="gsplines_follow_trajectory"
+          type="action_transtion_overlay_text_publisher"
+          name="action_overlay_text"
+          output="screen" />
+    <node name="stopper"
+          pkg="opstop_ros"
+          type="timed_stopper"
+          respawn="false"
+          output="screen">
+        <param name="control_name"
+               value="$(arg control_name)" />
+        <param name="time_to_stop_seconds"
+               value="$(arg time_to_stop_seconds)" />
+    </node>
+    <node name="plotter"
+          pkg="opstop_ros"
+          type="joint_trajectory_plotter"
+          respawn="false"
+          output="screen">
+        <param name="control_name"
+               value="$(arg control_name)" />
+    </node>
+    <node name="recording"
+          pkg="rosbag"
+          type="record"
+          respawn="false"
+          output="screen"
+          args="record -O /catkinws/src/experiment.bag position_joint_trajectory_controller/follow_joint_trajectory/goal position_joint_trajectory_controller/follow_joint_trajectory/status position_joint_trajectory_controller/follow_joint_trajectory/cancel follow_joint_gspline/cancel follow_joint_gspline/status joint_states tf path" />
 </launch>

@@ -1,42 +1,94 @@
 <?xml version="1.0"?>
 <launch>
-  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${node}, ${file}:${function}:${line}]: ${message}"/>
-  <arg name="control_name"/>
-  <arg name="robot_description_file" doc="Robot description for pinocchio"/>
-  <arg name="rate" default="0.1"/>
-  <arg name="control_step" default="0.005"/>
-  <arg name="number_of_waypoints" default="5"/>
-  <arg name="waypoint_radius" default="0.1"/>
-  <arg name="execution_time" default="4.5"/>
-  <arg name="optimization_window_milliseconds" default="200"/>
-  <arg name="network_window_milliseconds" default="50"/>
-  <arg name="network_delay_milliseconds" default="10"/>
-  <arg name="repeat" default="false"/>
-  <arg name="maximum_acceleration" default="5.0"/>
-  <arg name="alpha" default="5.0"/>
-  <arg name="nglp" default="5"/>
-  <arg name="smoothness_measure" default="jerk_l2_max"/>
-  <rosparam file="$(find opstop_ros)/config/example_control_conf.yaml" command="load"/>
-  <node name="wrapper" pkg="opstop_ros" type="follow_joint_trajectory_wrapper" respawn="false" output="screen">
-    <param name="action_name" value="follow_joint_gspline"/>
-    <param name="target_action_ns" value="$(arg control_name)"/>
-    <param name="control_step" value="$(arg control_step)"/>
-    <param name="optimization_window_milliseconds" value="$(arg optimization_window_milliseconds)"/>
-    <param name="network_window_milliseconds" value="$(arg network_window_milliseconds)"/>
-    <param name="maximum_acceleration" value="$(arg maximum_acceleration)"/>
-    <param name="robot_description" command="$(find xacro)/xacro --inorder $(arg robot_description_file)"/>
-    <param name="alpha" value="$(arg alpha)"/>
-    <param name="nglp" value="$(arg nglp)"/>
-    <param name="smoothness_measure" value="$(arg smoothness_measure)"/>
-  </node>
-  <node name="motion_generator" pkg="gsplines_follow_trajectory" type="random_minimum_jerk_gsplines" respawn="false" output="screen">
-    <param name="rate" value="$(arg rate)"/>
-    <param name="number_of_waypoints" value="$(arg number_of_waypoints)"/>
-    <param name="waypoint_radius" value="$(arg waypoint_radius)"/>
-    <param name="execution_time" value="$(arg execution_time)"/>
-    <param name="control_name" value="$(arg control_name)"/>
-    <param name="network_delay_milliseconds" value="$(arg network_delay_milliseconds)"/>
-    <param name="repeat" value="$(arg repeat)"/>
-    <param name="same_trajectory" value="true"/>
-  </node>
+    <env name="ROSCONSOLE_FORMAT"
+         value="[${severity}] [${node}, ${file}:${function}:${line}]: ${message}" />
+    <arg name="control_name" />
+    <arg name="robot_description_file"
+         doc="Robot description for pinocchio" />
+    <arg name="rate"
+         default="0.1"
+         doc="" />
+    <arg name="control_step"
+         default="0.005" />
+    <arg name="number_of_waypoints"
+         default="5" />
+    <arg name="waypoint_radius"
+         default="0.1" />
+    <arg name="execution_time"
+         default="4.5" />
+    <arg name="optimization_window_milliseconds"
+         default="200" />
+    <arg name="network_window_milliseconds"
+         default="50" />
+    <arg name="network_delay_milliseconds"
+         default="10" />
+    <arg name="repeat"
+         default="false" />
+    <arg name="maximum_acceleration"
+         default="5.0" />
+    <arg name="alpha"
+         default="5.0"
+         doc="maximum increment of the smoothness measure" />
+    <arg name="nglp"
+         default="5"
+         doc="number of gauss-lobatto points used to integrate in the optimization process." />
+    <arg name="smoothness_measure"
+         default="jerk_l2_max"
+         doc="smoothness measure to limit during the time minimization process" />
+    <rosparam file="$(find opstop_ros)/config/example_control_conf.yaml"
+              command="load" />
+    <!--++++++++++++++++++++++++++++++++++++++++++-->
+    <!-- Launch control action repeater           -->
+    <!--++++++++++++++++++++++++++++++++++++++++++-->
+    <node name="wrapper"
+          pkg="opstop_ros"
+          type="follow_joint_trajectory_wrapper"
+          respawn="false"
+          output="screen">
+        <param name="action_name"
+               value="follow_joint_gspline" />
+        <param name="target_action_ns"
+               value="$(arg control_name)" />
+        <param name="control_step"
+               value="$(arg control_step)" />
+        <param name="optimization_window_milliseconds"
+               value="$(arg optimization_window_milliseconds)" />
+        <param name="network_window_milliseconds"
+               value="$(arg network_window_milliseconds)" />
+        <param name="maximum_acceleration"
+               value="$(arg maximum_acceleration)" />
+        <param name="robot_description"
+               command="$(find xacro)/xacro --inorder $(arg robot_description_file)" />
+        <param name="alpha"
+               value="$(arg alpha)" />
+        <param name="nglp"
+               value="$(arg nglp)" />
+        <param name="smoothness_measure"
+               value="$(arg smoothness_measure)" />
+    </node>
+    <!--++++++++++++++++++++++++++++++++++++++++++-->
+    <!-- Launch node that generate random motions -->
+    <!--++++++++++++++++++++++++++++++++++++++++++-->
+    <node name="motion_generator"
+          pkg="gsplines_follow_trajectory"
+          type="random_minimum_jerk_gsplines"
+          respawn="false"
+          output="screen">
+        <param name="rate"
+               value="$(arg rate)" />
+        <param name="number_of_waypoints"
+               value="$(arg number_of_waypoints)" />
+        <param name="waypoint_radius"
+               value="$(arg waypoint_radius)" />
+        <param name="execution_time"
+               value="$(arg execution_time)" />
+        <param name="control_name"
+               value="$(arg control_name)" />
+        <param name="network_delay_milliseconds"
+               value="$(arg network_delay_milliseconds)" />
+        <param name="repeat"
+               value="$(arg repeat)" />
+        <param name="same_trajectory"
+               value="true" />
+    </node>
 </launch>
