@@ -46,6 +46,33 @@ public:
   FollowJointTrajectoryActionWrapper &
   operator=(const FollowJointTrajectoryActionWrapper &) = delete;
 
+  /**
+   * @brief Constructs a FollowJointTrajectoryActionWrapper object.
+   *
+   * This constructor initializes a FollowJointTrajectoryActionWrapper
+   * instance, setting up the necessary parameters for the ROS
+   * FollowJointTrajectoryAction repeater. The wrapper acts as an intermediary,
+   * adapting and forwarding joint trajectory commands to another
+   * FollowJointTrajectoryAction server.
+   *
+   * @param _name Name of the action server provided by this wrapper
+   * @param _fjta_name Name of the other FollowJointTrajectoryAction server
+   * to which commands are forwarded.
+   * @param _control_step Time step size (in seconds) for the control loop
+   * execution.
+   * @param _optimization_window Time window (in seconds) over which trajectory
+   * optimization is performed.
+   * @param _network_window Time window (in seconds) considered for compensating
+   * network latencies and uncertainties.
+   * @param _alpha Weight factor used in the optimization process, typically for
+   * smoothness or other criteria.
+   * @param _smoothness_measure String identifying the measure of smoothness (or
+   * other optimization criteria) to be used.
+   * @param _model Reference to a pinocchio::Model instance representing the
+   * robot model used for trajectory calculations.
+   * @param _nglp Number of Gauss-Lobatto points used for discretizing the
+   * trajectory in the optimization process.
+   */
   FollowJointTrajectoryActionWrapper(
       const std::string &_name, const std::string &_fjta_name,
       double _control_step, double _optimization_window, double _network_window,
