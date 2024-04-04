@@ -251,7 +251,6 @@ void FollowJointTrajectoryActionWrapper::feedback_action(
 
   gsplines_follow_trajectory::FollowJointTrajectoryActionWrapper::
       feedback_action(_result);
-  last_update_time_ = ros::Time::now();
   /*
   ROS_INFO("%+17.7e %+17.7e %+17.7e ", _result->actual.time_from_start.toSec(),
            _result->desired.time_from_start.toSec(),
@@ -262,6 +261,5 @@ void FollowJointTrajectoryActionWrapper::active_action() {
   if (desired_motion_start_time_.toSec() == 0) {
     desired_motion_start_time_ = ros::Time::now();
   }
-  action_accepted_time_ = ros::Time::now();
 }
 } // namespace opstop_ros
