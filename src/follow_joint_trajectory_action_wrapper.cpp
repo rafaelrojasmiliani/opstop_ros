@@ -80,10 +80,10 @@ void FollowJointTrajectoryActionWrapper::action_callback() {
     model_joint_index_to_joint_state_joint_index[static_cast<long>(
         model_.idx_qs[model_.getJointId(jname)])] = index;
     ROS_INFO_STREAM_NAMED(LOGNAME,
-                          "Registering joint '"
-                              << jname << "' id in model "
+                          "Associating joint from message with id '"
+                              << jname << "' to joint in pinocchio model "
                               << model_.idx_qs[model_.getJointId(jname)]
-                              << " id in joint state " << index);
+                              << " with id in joint state " << index);
     index++;
   }
 
@@ -96,9 +96,6 @@ void FollowJointTrajectoryActionWrapper::action_callback() {
       goal->gspline.gspline.number_of_intervals + 1, js.name.size());
 
   for (const auto &jointMap : model_joint_index_to_joint_state_joint_index) {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "a jointMap.first " << jointMap.first
-                                                        << " jointMap.second "
-                                                        << jointMap.second);
     model_consistent_waypoints.col(jointMap.first).array() =
         js.position[jointMap.second];
   }
