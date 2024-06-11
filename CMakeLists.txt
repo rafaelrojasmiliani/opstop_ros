@@ -4,9 +4,9 @@ add_compile_options(-std=c++17)
 
 find_package(
   catkin REQUIRED
-  COMPONENTS actionlib
-             actionlib_msgs
+  COMPONENTS actionlib_msgs
              control_msgs
+             dynamic_reconfigure
              gsplines_follow_trajectory
              gsplines_msgs
              gsplines_ros
@@ -14,12 +14,16 @@ find_package(
              roscpp
              rospy
              std_msgs
-             trajectory_msgs)
+             trajectory_msgs
+             actionlib)
 
 find_package(Eigen3 REQUIRED)
 find_package(GSplines REQUIRED)
 find_package(OpStop REQUIRED)
 find_package(pinocchio REQUIRED)
+
+generate_dynamic_reconfigure_options(
+  "cfg/FollowJointTrajectoryActionWrapperDynamicReconfigure.cfg")
 
 catkin_package(
   INCLUDE_DIRS
@@ -30,6 +34,7 @@ catkin_package(
   actionlib
   actionlib_msgs
   control_msgs
+  dynamic_reconfigure
   gsplines_follow_trajectory
   gsplines_msgs
   gsplines_ros
@@ -47,6 +52,8 @@ add_library(opstop_ros src/follow_joint_trajectory_action_wrapper.cpp)
 target_link_libraries(
   opstop_ros ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES} ${gsplines_LIBRARIES}
   ${opstop_LIBRARIES} ${pinocchio_LIBRARIES})
+
+add_dependencies(opstop_ros ${PROJECT_NAME}_gencfg)
 
 add_executable(follow_joint_trajectory_wrapper
                src/follow_joint_trajectory_action_wrapper_node.cpp)

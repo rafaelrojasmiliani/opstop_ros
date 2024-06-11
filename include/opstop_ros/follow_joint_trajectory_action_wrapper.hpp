@@ -35,18 +35,6 @@ private:
   std::unique_ptr<gsplines::functions::FunctionBase>
       pinocchio_model_consistent_trajectory_;
 
-  ///  Maximum duration allowed for the optimizer to run, in milliseconds.
-  double optimization_window_milliseconds_;
-
-  ///  Expected network delay in milliseconds
-  double network_window_milliseconds_;
-
-  ///  See the paper.
-  double alpha_;
-
-  ///  Number of gauss-lobatto points See the paper.
-  std::size_t nglp_;
-
   ///  Time at which preemption signal arrives
   ros::Time preemption_time_;
 
@@ -61,9 +49,6 @@ private:
 
   ///  Mutex to protect the joint state variable
   std::mutex mutex_;
-
-  ///  Smoothness measure used during the stop. See the paper.
-  std::string smoothness_measure_;
 
 public:
   ///  Static const array with the smoothness measure avaialable for the
@@ -114,7 +99,7 @@ public:
   FollowJointTrajectoryActionWrapper(
       const std::string &_name, const std::string &_fjta_name,
       double _control_step, double _optimization_window, double _network_window,
-      double _alpha, std::string _smoothness_measure,
+      double _alpha, std::string &_smoothness_measure,
       const pinocchio::Model &_model, std::size_t _nglp);
 
   /// Destructor
@@ -144,6 +129,10 @@ public:
    */
   void feedback_action(const control_msgs::FollowJointTrajectoryFeedbackConstPtr
                            &_result) override;
+
+protected:
+  class Impl;
+  std::unique_ptr<Impl> m_impl;
 };
 } // namespace opstop_ros
 

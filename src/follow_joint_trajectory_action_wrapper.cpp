@@ -4,9 +4,13 @@
 // --
 #include <chrono> // for high_resolution_clock
 #include <cmath>
+#include <dynamic_reconfigure/server.h>
 #include <gsplines/Functions/ElementalFunctions.hpp>
 #include <gsplines/Interpolator.hpp>
 #include <gsplines_ros/gsplines_ros.hpp>
+#include <opstop_ros/FollowJointTrajectoryActionWrapperDynamicReconfigureConfig.h>
+
+#include <optional>
 #include <sensor_msgs/JointState.h>
 namespace opstop_ros {
 
@@ -15,17 +19,82 @@ const std::string LOGNAME("OpStopControlActionWrapper");
 const std::vector<std::string> smoothness_measures_available = {
     "jerk_l2_max", "acceleration_max"};
 
+std::optional<std::size_t> smoothness_measure_to_uint(const std::string &_in) {
+
+  if (_in == smoothness_measures_available[0]) {
+    return 0;
+  }
+  if (_in == smoothness_measures_available[1]) {
+    return 1;
+  };
+  return std::nullopt;
+}
+
+class FollowJointTrajectoryActionWrapper::Impl {
+public:
+  double optimization_window_milliseconds = 100;
+  double network_window_milliseconds = 10;
+  double alpha = 2.0;
+  std::size_t nglp = 4;
+  std::size_t smoothness_measure;
+  using ConfigType =
+      opstop_ros::FollowJointTrajectoryActionWrapperDynamicReconfigureConfig;
+
+  dynamic_reconfigure::Server<ConfigType> server_;
+
+  Impl(double _optimization_window, double _network_window, double _alpha,
+       std::size_t _nglp, std::string &_smoothness_measure)
+      : server_(ros::NodeHandle("~/opstop_optimizer")),
+        optimization_window_milliseconds(_optimization_window),
+        network_window_milliseconds(_network_window), alpha(_alpha),
+        nglp(_nglp),
+        smoothness_measure(
+            smoothness_measure_to_uint(_smoothness_measure).value()) {
+
+    server_.setCallback([this](ConfigType &_cfg, uint32_t _level) {
+      this->set_parameters(_cfg, _level);
+    });
+
+    ConfigType config;
+    config.alpha = _alpha;
+    config.optimization_window_milliseconds = _optimization_window;
+    config.network_window_milliseconds = _network_window;
+    config.alpha = _alpha;
+    config.smoothness_measure = static_cast<int>(smoothness_measure);
+
+    server_.updateConfig(config);
+  }
+
+  //   bool get_basis(typename GetBasisSrv::Request &req, // NOLINT
+  //                  typename GetBasisSrv::Response &res) {
+
+  //     (void)req;
+  //     res.basis = gsplines_ros::basis_to_basis_msg(*this->basis);
+  //     res.success = true; // NOLINT
+  //     res.message = "";
+  //     return true;
+  //   }
+
+  void set_parameters(ConfigType &_cfg, uint32_t level) {
+    (void)level;
+
+    optimization_window_milliseconds = _cfg.optimization_window_milliseconds;
+    network_window_milliseconds = _cfg.network_window_milliseconds;
+    alpha = _cfg.alpha;
+    nglp = _cfg.nglp;
+    smoothness_measure = _cfg.smoothness_measure;
+  }
+};
+
 FollowJointTrajectoryActionWrapper::FollowJointTrajectoryActionWrapper(
     const std::string &_name, const std::string &_fjta_name,
     double _control_step, double _optimization_window, double _network_window,
-    double _alpha, std::string _smoothness_measure,
+    double _alpha, std::string &_smoothness_measure,
     const pinocchio::Model &_model, std::size_t _nglp)
     : gsplines_follow_trajectory::FollowJointTrajectoryActionWrapper(
           _name, _fjta_name, _control_step),
-      optimization_window_milliseconds_(_optimization_window),
-      network_window_milliseconds_(_network_window), alpha_(_alpha),
-      model_(_model), nglp_(_nglp),
-      smoothness_measure_(std::move(_smoothness_measure)) {
+      model_(_model), m_impl(new Impl(_optimization_window, _network_window,
+                                      _alpha, _nglp, _smoothness_measure)) {
 
   joint_state_subscriber_ = nh_.subscribe<sensor_msgs::JointState>(
       "joint_states", 1000,
@@ -48,7 +117,8 @@ void FollowJointTrajectoryActionWrapper::action_callback() {
   forward_goal(*goal);
 
   // --------------------------------------------------------------------------
-  // 3. Check correctness of the model and build the pinocchio-model-consistent
+  // 3. Check correctness of the model and build the
+  // pinocchio-model-consistent
   //    trajectory
   // --------------------------------------------------------------------------
 
@@ -57,7 +127,8 @@ void FollowJointTrajectoryActionWrapper::action_callback() {
   sensor_msgs::JointState js = joint_state_;
   mutex_.unlock();
 
-  // 3.1.1 Check that we have the same number of joints in the model and in the
+  // 3.1.1 Check that we have the same number of joints in the model and in
+  // the
   //       joint state publisher
   if (js.name.size() != model_.nq) {
     original_trajectory_ = nullptr;
@@ -157,10 +228,10 @@ void FollowJointTrajectoryActionWrapper::preemption_action() {
   preemption_time_ = ros::Time::now();
 
   // 2. compute the time when the original trajectory should stop
-  double ti =
-      (preemption_time_ - desired_motion_start_time_).toSec() +
-      (optimization_window_milliseconds_ + network_window_milliseconds_) *
-          1.0e-3;
+  double ti = (preemption_time_ - desired_motion_start_time_).toSec() +
+              (m_impl->optimization_window_milliseconds +
+               m_impl->network_window_milliseconds) *
+                  1.0e-3;
 
   std_msgs::Header stop_motion_header;
   stop_motion_header.stamp = desired_motion_start_time_ + ros::Duration(ti);
@@ -174,8 +245,8 @@ void FollowJointTrajectoryActionWrapper::preemption_action() {
   // 3. compute the time when the original trajectory should stop
   auto optimization_start_time = std::chrono::high_resolution_clock::now();
 
-  double total_window_milliseconds =
-      (optimization_window_milliseconds_ + network_window_milliseconds_);
+  double total_window_milliseconds = (m_impl->optimization_window_milliseconds +
+                                      m_impl->network_window_milliseconds);
 
   static int aux_int = 0;
 
@@ -192,7 +263,8 @@ void FollowJointTrajectoryActionWrapper::preemption_action() {
   }
   gsplines::functions::FunctionExpression diffeo =
       opstop::minimum_time_bounded_acceleration(
-          *pinocchio_model_consistent_trajectory_, ti, alpha_, model_, nglp_);
+          *pinocchio_model_consistent_trajectory_, ti, m_impl->alpha, model_,
+          m_impl->nglp);
 
   if (aux_int % 2 == 0) {
     ROS_INFO_STREAM("+++++++++++++++++++++++++++++++++++++\n ---- minimizing "
@@ -225,7 +297,7 @@ void FollowJointTrajectoryActionWrapper::preemption_action() {
 
   /// if it tool too much time to optimize call emergency stop
   if (computation_time_millisecods.count() >
-      optimization_window_milliseconds_) {
+      m_impl->optimization_window_milliseconds) {
     ROS_ERROR_STREAM_NAMED(LOGNAME,
                            "optimizaion took too much time, canceling goal");
     action_client_->cancelGoal();
@@ -249,7 +321,8 @@ void FollowJointTrajectoryActionWrapper::feedback_action(
   gsplines_follow_trajectory::FollowJointTrajectoryActionWrapper::
       feedback_action(_result);
   /*
-  ROS_INFO("%+17.7e %+17.7e %+17.7e ", _result->actual.time_from_start.toSec(),
+  ROS_INFO("%+17.7e %+17.7e %+17.7e ",
+  _result->actual.time_from_start.toSec(),
            _result->desired.time_from_start.toSec(),
            _result->error.time_from_start.toSec());
 */
