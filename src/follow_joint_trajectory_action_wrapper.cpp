@@ -261,10 +261,16 @@ void FollowJointTrajectoryActionWrapper::preemption_action() {
     action_client_->cancelGoal();
     return;
   }
-  gsplines::functions::FunctionExpression diffeo =
-      opstop::minimum_time_bounded_acceleration(
-          *pinocchio_model_consistent_trajectory_, ti, m_impl->alpha, model_,
-          m_impl->nglp);
+
+  auto diffeo = opstop::minimum_time_bounded_acceleration(
+      *pinocchio_model_consistent_trajectory_, ti, m_impl->alpha, model_,
+      m_impl->nglp);
+
+  if (!diffeo.has_value()) {
+    action_client_->cancelGoal();
+    ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to compute the smooth trajectory");
+    return;
+  }
 
   if (aux_int % 2 == 0) {
     ROS_INFO_STREAM("+++++++++++++++++++++++++++++++++++++\n ---- minimizing "
@@ -275,12 +281,12 @@ void FollowJointTrajectoryActionWrapper::preemption_action() {
                     "with jerk l2 ----- \n ");
   }
   aux_int++;
-  double end_time = diffeo.get_domain().second;
+  double end_time = diffeo.value().get_domain().second;
 
   // get the stopping trajectory
   gsplines::functions::FunctionExpression stop_trj =
-      original_trajectory_->compose(diffeo).compose(
-          gsplines::functions::Identity({ti, end_time}));
+      original_trajectory_->compose(diffeo.value())
+          .compose(gsplines::functions::Identity({ti, end_time}));
 
   // get the new goal for the follow joint trajectory controller
   control_msgs::FollowJointTrajectoryGoal goal_to_forward =
