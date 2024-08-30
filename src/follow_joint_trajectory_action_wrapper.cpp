@@ -10,6 +10,9 @@
 #include <gsplines_ros/gsplines_ros.hpp>
 #include <opstop_ros/FollowJointTrajectoryActionWrapperDynamicReconfigureConfig.h>
 
+#include <gsplines/Collocation/GaussLobattoLagrange.hpp>
+#include <gsplines_msgs/JointGSpline.h>
+
 #include <optional>
 #include <sensor_msgs/JointState.h>
 namespace opstop_ros {
@@ -32,6 +35,7 @@ std::optional<std::size_t> smoothness_measure_to_uint(const std::string &_in) {
 
 class FollowJointTrajectoryActionWrapper::Impl {
 public:
+  ros::NodeHandle nh_;
   double optimization_window_milliseconds = 100;
   double network_window_milliseconds = 10;
   double alpha = 2.0;
@@ -42,9 +46,11 @@ public:
 
   dynamic_reconfigure::Server<ConfigType> server_;
 
+  ros::Publisher stop_trj_approx_gspline_publisher_;
+
   Impl(double _optimization_window, double _network_window, double _alpha,
        std::size_t _nglp, std::string &_smoothness_measure)
-      : server_(ros::NodeHandle("~/opstop_optimizer")),
+      : nh_("~/opstop_optimizer"), server_(nh_),
         optimization_window_milliseconds(_optimization_window),
         network_window_milliseconds(_network_window), alpha(_alpha),
         nglp(_nglp),
@@ -57,12 +63,15 @@ public:
 
     ConfigType config;
     config.alpha = _alpha;
-    config.optimization_window_milliseconds = _optimization_window;
-    config.network_window_milliseconds = _network_window;
+    config.optimization_window_milliseconds =
+        static_cast<int>(_optimization_window);
+    config.network_window_milliseconds = static_cast<int>(_network_window);
     config.alpha = _alpha;
     config.smoothness_measure = static_cast<int>(smoothness_measure);
 
-    server_.updateConfig(config);
+    stop_trj_approx_gspline_publisher_ =
+        nh_.advertise<gsplines_msgs::JointGSpline>(
+            "computed_stop_gspline_approximation", 1000);
   }
 
   //   bool get_basis(typename GetBasisSrv::Request &req, // NOLINT
@@ -83,6 +92,46 @@ public:
     alpha = _cfg.alpha;
     nglp = _cfg.nglp;
     smoothness_measure = _cfg.smoothness_measure;
+
+    opstop::optimization::IpoptSolverOptions::set_option("linear_solver",
+                                                         _cfg.linear_solver);
+    opstop::optimization::IpoptSolverOptions::set_option(
+        "jacobian_approximation", _cfg.jacobian_approximation);
+
+    opstop::optimization::IpoptSolverOptions::set_option(
+        "fast_step_computation", _cfg.fast_step_computation);
+
+    opstop::optimization::IpoptSolverOptions::set_option("derivative_test",
+                                                         _cfg.derivative_test);
+
+    opstop::optimization::IpoptSolverOptions::set_option(
+        "hessian_approximation", _cfg.hessian_approximation);
+
+    opstop::optimization::IpoptSolverOptions::set_option("jac_c_constant",
+                                                         _cfg.jac_c_constant);
+
+    opstop::optimization::IpoptSolverOptions::set_option(
+        "print_timing_statistics", _cfg.print_timing_statistics);
+
+    opstop::optimization::IpoptSolverOptions::set_option(
+        "dependency_detector", _cfg.dependency_detector);
+
+    opstop::optimization::IpoptSolverOptions::set_option(
+        "dependency_detection_with_rhs", _cfg.dependency_detection_with_rhs);
+
+    opstop::optimization::IpoptSolverOptions::set_option("tol", _cfg.tol);
+
+    opstop::optimization::IpoptSolverOptions::set_option("dual_inf_tol",
+                                                         _cfg.dual_inf_tol);
+
+    opstop::optimization::IpoptSolverOptions::set_option("constr_viol_tol",
+                                                         _cfg.constr_viol_tol);
+
+    opstop::optimization::IpoptSolverOptions::set_option("compl_inf_tol",
+                                                         _cfg.compl_inf_tol);
+
+    opstop::optimization::IpoptSolverOptions::set_option("print_level",
+                                                         _cfg.print_level);
   }
 };
 
@@ -266,21 +315,25 @@ void FollowJointTrajectoryActionWrapper::preemption_action() {
       *pinocchio_model_consistent_trajectory_, ti, m_impl->alpha, model_,
       m_impl->nglp);
 
+  ROS_ERROR_STREAM_NAMED(LOGNAME, "_-------------------------------");
+
   if (!diffeo.has_value()) {
     action_client_->cancelGoal();
     ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to compute the smooth trajectory");
     return;
   }
 
-  if (aux_int % 2 == 0) {
-    ROS_INFO_STREAM("+++++++++++++++++++++++++++++++++++++\n ---- minimizing "
-                    "with acceleration ----- \n ");
-  } else {
+  // if (aux_int % 2 == 0) {
+  //   ROS_INFO_STREAM("+++++++++++++++++++++++++++++++++++++\n ---- minimizing
+  //   "
+  //                   "with acceleration ----- \n ");
+  // } else {
 
-    ROS_INFO_STREAM("+++++++++++++++++++++++++++++++++++++\n ---- minimizing "
-                    "with jerk l2 ----- \n ");
-  }
-  aux_int++;
+  //   ROS_INFO_STREAM("+++++++++++++++++++++++++++++++++++++\n ---- minimizing
+  //   "
+  //                   "with jerk l2 ----- \n ");
+  // }
+  // aux_int++;
   double end_time = diffeo.value().get_domain().second;
 
   // get the stopping trajectory
@@ -319,6 +372,13 @@ void FollowJointTrajectoryActionWrapper::preemption_action() {
           feedback_action(std::forward<decltype(PH1)>(PH1));
         });
   }
+  auto approx_stop_trajectory =
+      gsplines::collocation::GaussLobattoLagrangeSpline::approximate(stop_trj,
+                                                                     5, 5);
+
+  m_impl->stop_trj_approx_gspline_publisher_.publish(
+      gsplines_ros::gspline_to_joint_gspline_msg(
+          approx_stop_trajectory, original_trajectory_goal_names_));
 }
 
 void FollowJointTrajectoryActionWrapper::feedback_action(
