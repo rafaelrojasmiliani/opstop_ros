@@ -51,7 +51,7 @@ include_directories(
 add_library(opstop_ros src/follow_joint_trajectory_action_wrapper.cpp)
 target_link_libraries(
   opstop_ros ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES} ${gsplines_LIBRARIES}
-  ${opstop_LIBRARIES} ${pinocchio_LIBRARIES})
+  ${opstop_LIBRARIES} pinocchio::pinocchio)
 
 add_dependencies(opstop_ros ${PROJECT_NAME}_gencfg)
 
