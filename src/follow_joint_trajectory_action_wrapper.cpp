@@ -152,6 +152,9 @@ FollowJointTrajectoryActionWrapper::FollowJointTrajectoryActionWrapper(
         joint_state_ = *msg;
         mutex_.unlock();
       });
+  dynamic_model_consistent_gspline_publisher_ =
+      nh_prv_.advertise<gsplines_msgs::JointGSpline>(
+          "dynamic_model_consistent_gspline", 1000);
 }
 
 FollowJointTrajectoryActionWrapper::~FollowJointTrajectoryActionWrapper() =
@@ -250,11 +253,16 @@ void FollowJointTrajectoryActionWrapper::action_callback() {
   }
 
   // 4.4 Get the model consisten trajectory from interpolation
-  pinocchio_model_consistent_trajectory_ =
-      gsplines::interpolate(original_trajectory_->get_interval_lengths(),
-                            model_consistent_waypoints,
-                            original_trajectory_->get_basis())
-          .move_clone();
+  auto gspline = gsplines::interpolate(
+      original_trajectory_->get_interval_lengths(), model_consistent_waypoints,
+      original_trajectory_->get_basis());
+
+  std::vector<std::string> jn{model_.names};
+  jn.erase(std::find(jn.begin(), jn.end(), "universe"));
+  dynamic_model_consistent_gspline_publisher_.publish(
+      gsplines_ros::gspline_to_joint_gspline_msg(gspline, jn));
+
+  pinocchio_model_consistent_trajectory_ = gspline.move_clone();
 
   ROS_INFO_STREAM_NAMED(
       LOGNAME,

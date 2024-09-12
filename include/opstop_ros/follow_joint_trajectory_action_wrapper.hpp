@@ -47,6 +47,7 @@ private:
   ///  Buffer to store the joint states.
   sensor_msgs::JointState joint_state_;
 
+  ros::Publisher dynamic_model_consistent_gspline_publisher_;
   ///  Mutex to protect the joint state variable
   std::mutex mutex_;
 
