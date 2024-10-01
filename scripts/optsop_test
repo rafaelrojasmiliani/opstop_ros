@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+
+#!/usr/bin/env python3
+
+import rospy
+import io
+import tempfile
+# Replace with your actual package and message types
+from gsplines_msgs.msg import OpStopSolution, OpStopProblem
+import gsplines_ros
+import asyncio
+import opstop
+import threading
+
+
+class AsyncNode:
+    def __init__(self, wrapper_name='wrapper'):
+        # Initialize the ROS node
+        rospy.init_node('opstop_test', anonymous=True)
+
+        # Create the asyncio event loop
+        self.loop = asyncio.get_event_loop()
+
+        self.loop.set_exception_handler(self.handle_async_exception)
+        # Initialize the futures for topics and shutdown
+        self.problem_ = asyncio.Future()
+        self.solution_ = asyncio.Future()
+        self.shutdown_future = asyncio.Future()
+
+        # Subscribe to the two topics
+        rospy.Subscriber(wrapper_name+'/opstop_optimizer/opstop_problem',
+                         OpStopProblem, self.problem_callback)
+        rospy.Subscriber(wrapper_name+'/opstop_optimizer/opstop_solution',
+                         OpStopSolution, self.solution_callback)
+
+        # Start a separate thread to listen for the ROS shutdown signal
+        self.shutdown_thread = threading.Thread(target=self.shutdown_monitor)
+        self.shutdown_thread.start()
+
+        # Start the asyncio event loop in the background
+        self.loop.create_task(self.event_loop())
+
+    def handle_async_exception(self, loop, context):
+        # This is called when any exception occurs in an asyncio task
+        msg = context.get("exception", context["message"])
+        rospy.logerr(f"Unhandled exception in async task: {msg}")
+        # Optionally, stop the event loop, causing the program to exit
+        loop.stop()
+
+    async def event_loop(self):
+        # Run indefinitely, waiting for both messages or shutdown signal
+        while not rospy.is_shutdown():
+            done, pending = await asyncio.wait(
+                [self.problem_, self.solution_, self.shutdown_future],
+                return_when=asyncio.FIRST_COMPLETED
+            )
+
+            # If shutdown signal was received, break out of the loop
+            if self.shutdown_future in done:
+                break
+
+            # Check if both problem and solution messages are available
+            if self.problem_.done() and self.solution_.done():
+                result1 = self.problem_.result()
+                result2 = self.solution_.result()
+                self.my_procedure(result1, result2)
+                # Reset the futures for the next set of messages
+                self.reset_futures()
+
+    # Monitor the ROS shutdown signal in a separate thread
+    def shutdown_monitor(self):
+        rospy.on_shutdown(self.shutdown_callback)
+        rospy.spin()  # Keep the thread alive to monitor shutdown
+
+    # Callback for when ROS is shutting down
+    def shutdown_callback(self):
+        if not self.shutdown_future.done():
+            self.loop.call_soon_threadsafe(
+                self.shutdown_future.set_result, True)
+        self.loop.stop()  # Stop the asyncio event loop when shutting down
+
+    def reset_futures(self):
+        if self.problem_.done():
+            self.problem_ = asyncio.Future()
+        if self.solution_.done():
+            self.solution_ = asyncio.Future()
+
+    # Callback for topic 1
+    def problem_callback(self, msg):
+        if not self.problem_.done():
+            self.loop.call_soon_threadsafe(self.problem_.set_result, msg)
+
+    # Callback for topic 2
+    def solution_callback(self, msg):
+        if not self.solution_.done():
+            self.loop.call_soon_threadsafe(self.solution_.set_result, msg)
+
+    # Procedure that runs once both messages are received
+    def my_procedure(self, msg1: OpStopProblem, msg2: OpStopSolution):
+        rospy.loginfo("++++++++++++++++++")
+        rospy.loginfo(len(msg1.robot_model))
+        urdf_file = io.StringIO(msg1.robot_model)
+        rospy.loginfo("++++++++++++++++++")
+        with tempfile.NamedTemporaryFile(delete=False, mode='w') as temp_file:
+            rospy.loginfo("++++++++++++++++++")
+            temp_file.write(urdf_file.getvalue())
+            rospy.loginfo('calling minimum_time_bounded_accelerationa')
+            opstop.minimum_time_bounded_acceleration(
+                gsplines_ros.gspline_msg_to_gspline(msg1.gspline.gspline),
+                msg1.ti, msg1.alpha, temp_file.name, msg1.nglp
+            )
+            rospy.loginfo("dpne....")
+        opstop.minimum_time_bounded_acceleration(
+            gsplines_ros.gspline_msg_to_gspline(msg1.gspline.gspline),
+            msg1.ti, msg1.alpha,
+            "/gsplines/opstop_cpp/tests/urdf/panda_arm_with_fingers.urdf",
+            msg1.nglp
+        )
+
+
+if __name__ == '__main__':
+    try:
+        node = AsyncNode()
+        node.loop.run_forever()  # Run the asyncio loop indefinitely
+    except rospy.ROSInterruptException:
+        pass

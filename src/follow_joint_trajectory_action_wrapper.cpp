@@ -7,6 +7,8 @@
 #include <dynamic_reconfigure/server.h>
 #include <gsplines/Functions/ElementalFunctions.hpp>
 #include <gsplines/Interpolator.hpp>
+#include <gsplines_msgs/OpStopProblem.h>
+#include <gsplines_msgs/OpStopSolution.h>
 #include <gsplines_ros/gsplines_ros.hpp>
 #include <opstop_ros/FollowJointTrajectoryActionWrapperDynamicReconfigureConfig.h>
 
@@ -41,12 +43,21 @@ public:
   double alpha = 2.0;
   std::size_t nglp = 4;
   std::size_t smoothness_measure;
+
+  /// Dynamix reconfigure type definition
   using ConfigType =
       opstop_ros::FollowJointTrajectoryActionWrapperDynamicReconfigureConfig;
-
+  /// Dynamic reconfigure server
   dynamic_reconfigure::Server<ConfigType> server_;
 
+  /// Publishes the approximation to the stopping trajectory
   ros::Publisher stop_trj_approx_gspline_publisher_;
+
+  /// Publisher of the optstop problem
+  ros::Publisher opstop_problem_publisher_;
+
+  /// Publisher of the optstop solution
+  ros::Publisher opstop_problem_solution_publisher_;
 
   Impl(double _optimization_window, double _network_window, double _alpha,
        std::size_t _nglp, std::string &_smoothness_measure)
@@ -71,7 +82,12 @@ public:
 
     stop_trj_approx_gspline_publisher_ =
         nh_.advertise<gsplines_msgs::JointGSpline>(
-            "computed_stop_gspline_approximation", 1000);
+            "computed_stop_gspline_approximation", 10);
+
+    opstop_problem_publisher_ =
+        nh_.advertise<gsplines_msgs::OpStopProblem>("opstop_problem", 10);
+    opstop_problem_solution_publisher_ =
+        nh_.advertise<gsplines_msgs::OpStopSolution>("opstop_solution", 10);
   }
 
   //   bool get_basis(typename GetBasisSrv::Request &req, // NOLINT
@@ -387,6 +403,33 @@ void FollowJointTrajectoryActionWrapper::preemption_action() {
   m_impl->stop_trj_approx_gspline_publisher_.publish(
       gsplines_ros::gspline_to_joint_gspline_msg(
           approx_stop_trajectory, original_trajectory_goal_names_));
+
+  if (auto *gspline = dynamic_cast<gsplines::GSpline *>(
+          pinocchio_model_consistent_trajectory_.get())) {
+    gsplines_msgs::OpStopProblem problem;
+    problem.ti = ti;
+    problem.alpha = m_impl->alpha;
+    problem.gspline = gsplines_ros::gspline_to_joint_gspline_msg(
+        *gspline, std::vector<std::string>());
+    // problem.pinocchio_model = model_.saveToString();
+    nh_.getParam("robot_description", problem.robot_model);
+    problem.nglp = static_cast<int>(m_impl->nglp);
+
+    m_impl->opstop_problem_publisher_.publish(problem);
+  }
+
+  gsplines_msgs::OpStopSolution sol;
+  sol.sf = opstop::optimization::IpoptSolverOptions::instance()
+               .last_solution.value()
+               .sf;
+  sol.ti = opstop::optimization::IpoptSolverOptions::instance()
+               .last_solution.value()
+               .ti;
+  sol.Ts = opstop::optimization::IpoptSolverOptions::instance()
+               .last_solution.value()
+               .Ts;
+
+  m_impl->opstop_problem_solution_publisher_.publish(sol);
 }
 
 void FollowJointTrajectoryActionWrapper::feedback_action(
