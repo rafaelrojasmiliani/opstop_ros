@@ -161,6 +161,11 @@ FollowJointTrajectoryActionWrapper::FollowJointTrajectoryActionWrapper(
       model_(_model), m_impl(new Impl(_optimization_window, _network_window,
                                       _alpha, _nglp, _smoothness_measure)) {
 
+  if (_nglp < 3) {
+    ROS_WARN_STREAM("The numnber of gauss-lobatto points set to 3.");
+    m_impl->alpha = 3;
+  }
+
   joint_state_subscriber_ = nh_.subscribe<sensor_msgs::JointState>(
       "joint_states", 1000,
       [this](const sensor_msgs::JointState::ConstPtr &msg) {
@@ -411,6 +416,8 @@ void FollowJointTrajectoryActionWrapper::preemption_action() {
     problem.alpha = m_impl->alpha;
     problem.gspline = gsplines_ros::gspline_to_joint_gspline_msg(
         *gspline, std::vector<std::string>());
+    problem.original_gspline = gsplines_ros::gspline_to_joint_gspline_msg(
+        *original_trajectory_, std::vector<std::string>());
     // problem.pinocchio_model = model_.saveToString();
     nh_.getParam("robot_description", problem.robot_model);
     problem.nglp = static_cast<int>(m_impl->nglp);
