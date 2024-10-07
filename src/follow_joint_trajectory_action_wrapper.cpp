@@ -43,6 +43,7 @@ public:
   double alpha = 2.0;
   std::size_t nglp = 4;
   std::size_t smoothness_measure;
+  double stop_trj_control_step = 0.01;
 
   /// Dynamix reconfigure type definition
   using ConfigType =
@@ -52,6 +53,9 @@ public:
 
   /// Publishes the approximation to the stopping trajectory
   ros::Publisher stop_trj_approx_gspline_publisher_;
+
+  /// Publisher of the forwared solution
+  ros::Publisher stop_trj_publisher_;
 
   /// Publisher of the optstop problem
   ros::Publisher opstop_problem_publisher_;
@@ -84,6 +88,9 @@ public:
         nh_.advertise<gsplines_msgs::JointGSpline>(
             "computed_stop_gspline_approximation", 10);
 
+    stop_trj_publisher_ =
+        nh_.advertise<trajectory_msgs::JointTrajectory>("stop_trajectory", 10);
+
     opstop_problem_publisher_ =
         nh_.advertise<gsplines_msgs::OpStopProblem>("opstop_problem", 10);
     opstop_problem_solution_publisher_ =
@@ -108,6 +115,8 @@ public:
     alpha = _cfg.alpha;
     nglp = _cfg.nglp;
     smoothness_measure = _cfg.smoothness_measure;
+
+    stop_trj_control_step = _cfg.stop_control_step;
 
     opstop::optimization::IpoptSolverOptions::set_option("linear_solver",
                                                          _cfg.linear_solver);
@@ -163,7 +172,7 @@ FollowJointTrajectoryActionWrapper::FollowJointTrajectoryActionWrapper(
 
   if (_nglp < 3) {
     ROS_WARN_STREAM("The numnber of gauss-lobatto points set to 3.");
-    m_impl->alpha = 3;
+    m_impl->nglp = 3;
   }
 
   joint_state_subscriber_ = nh_.subscribe<sensor_msgs::JointState>(
@@ -374,7 +383,7 @@ void FollowJointTrajectoryActionWrapper::preemption_action() {
   control_msgs::FollowJointTrajectoryGoal goal_to_forward =
       gsplines_ros::function_to_follow_joint_trajectory_goal(
           stop_trj, original_trajectory_goal_names_,
-          ros::Duration(get_control_step()), stop_motion_header);
+          ros::Duration(m_impl->stop_trj_control_step), stop_motion_header);
 
   auto optimization_complete_time = std::chrono::high_resolution_clock::now();
 
@@ -408,6 +417,7 @@ void FollowJointTrajectoryActionWrapper::preemption_action() {
   m_impl->stop_trj_approx_gspline_publisher_.publish(
       gsplines_ros::gspline_to_joint_gspline_msg(
           approx_stop_trajectory, original_trajectory_goal_names_));
+  m_impl->stop_trj_publisher_.publish(goal_to_forward.trajectory);
 
   if (auto *gspline = dynamic_cast<gsplines::GSpline *>(
           pinocchio_model_consistent_trajectory_.get())) {
@@ -419,7 +429,7 @@ void FollowJointTrajectoryActionWrapper::preemption_action() {
     problem.original_gspline = gsplines_ros::gspline_to_joint_gspline_msg(
         *original_trajectory_, std::vector<std::string>());
     // problem.pinocchio_model = model_.saveToString();
-    nh_.getParam("robot_description", problem.robot_model);
+    nh_.getParam("robot_description", problem.robot_description);
     problem.nglp = static_cast<int>(m_impl->nglp);
 
     m_impl->opstop_problem_publisher_.publish(problem);
