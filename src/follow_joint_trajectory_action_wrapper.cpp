@@ -349,11 +349,25 @@ void FollowJointTrajectoryActionWrapper::preemption_action() {
     return;
   }
 
-  auto diffeo = opstop::minimum_time_bounded_acceleration(
-      *pinocchio_model_consistent_trajectory_, ti, m_impl->alpha, model_,
-      m_impl->nglp);
-
-  ROS_ERROR_STREAM_NAMED(LOGNAME, "_-------------------------------");
+  auto diffeo =
+      [&]() -> std::optional<gsplines::functions::FunctionExpression> {
+    switch (m_impl->smoothness_measure) {
+    case 0:
+      return opstop::minimum_time_bounded_jerk_l2(
+          *pinocchio_model_consistent_trajectory_, ti, m_impl->alpha, model_,
+          m_impl->nglp);
+    case 1:
+      return opstop::minimum_time_bounded_acceleration(
+          *pinocchio_model_consistent_trajectory_, ti, m_impl->alpha, model_,
+          m_impl->nglp);
+      // case 2:
+      //   return opstop::minimum_time_bounded_jerk(
+      //       *pinocchio_model_consistent_trajectory_, ti, m_impl->alpha,
+      //       model_, m_impl->nglp);
+    };
+    ROS_ERROR_STREAM_NAMED(LOGNAME, "Unknow smoothness_measure to optimize");
+    return std::nullopt;
+  }();
 
   if (!diffeo.has_value()) {
     action_client_->cancelGoal();
@@ -361,17 +375,6 @@ void FollowJointTrajectoryActionWrapper::preemption_action() {
     return;
   }
 
-  // if (aux_int % 2 == 0) {
-  //   ROS_INFO_STREAM("+++++++++++++++++++++++++++++++++++++\n ---- minimizing
-  //   "
-  //                   "with acceleration ----- \n ");
-  // } else {
-
-  //   ROS_INFO_STREAM("+++++++++++++++++++++++++++++++++++++\n ---- minimizing
-  //   "
-  //                   "with jerk l2 ----- \n ");
-  // }
-  // aux_int++;
   double end_time = diffeo.value().get_domain().second;
 
   // get the stopping trajectory
